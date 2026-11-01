@@ -1,6 +1,7 @@
 mod gpu_viewport;
 mod viewport_camera;
 mod viewport_picking;
+mod viewport_gizmo;
 
 use astra_core::EngineInfo;
 use astra_scene::{EntityId, Scene};
@@ -78,6 +79,9 @@ fn default_dock_state() -> DockState<EditorTab> {
     dock
 }
 
+#[derive(Debug, Clone, Copy)]
+struct GizmoDrag { entity: EntityId, axis: viewport_gizmo::Axis, start: egui::Pos2, initial: [f32; 3] }
+
 struct AstraEditor {
     dock_state: DockState<EditorTab>,
     state: EditorState,
@@ -86,6 +90,8 @@ struct AstraEditor {
     camera_pitch: f32,
     camera_distance: f32,
     camera_target: [f32; 3],
+    gizmo_mode: viewport_gizmo::Mode,
+    gizmo_drag: Option<GizmoDrag>,
 }
 
 impl AstraEditor {
@@ -120,6 +126,8 @@ impl AstraEditor {
             camera_pitch: 0.48,
             camera_distance: 9.0,
             camera_target: [0.0, 0.0, 0.0],
+            gizmo_mode: viewport_gizmo::Mode::Move,
+            gizmo_drag: None,
         }
     }
 
@@ -193,6 +201,10 @@ impl AstraEditor {
                     self.log("Stop requested.");
                 }
                 ui.separator();
+                for (label, mode) in [("W Move", viewport_gizmo::Mode::Move), ("E Rotate", viewport_gizmo::Mode::Rotate), ("R Scale", viewport_gizmo::Mode::Scale)] {
+                    if ui.selectable_label(self.gizmo_mode == mode, label).clicked() { self.gizmo_mode = mode; self.gizmo_drag = None; }
+                }
+                ui.separator();
                 ui.label("Scene: Untitled");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label("Windows · Editor 0.4");
@@ -235,6 +247,8 @@ impl eframe::App for AstraEditor {
                     camera_pitch: &mut self.camera_pitch,
                     camera_distance: &mut self.camera_distance,
                     camera_target: &mut self.camera_target,
+                    gizmo_mode: &mut self.gizmo_mode,
+                    gizmo_drag: &mut self.gizmo_drag,
                 };
                 DockArea::new(&mut self.dock_state)
                     .style(Style::from_egui(ui.style()))
@@ -267,6 +281,8 @@ struct EditorTabViewer<'a> {
     camera_pitch: &'a mut f32,
     camera_distance: &'a mut f32,
     camera_target: &'a mut [f32; 3],
+    gizmo_mode: &'a mut viewport_gizmo::Mode,
+    gizmo_drag: &'a mut Option<GizmoDrag>,
 }
 
 impl TabViewer for EditorTabViewer<'_> {
