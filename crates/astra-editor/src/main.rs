@@ -44,7 +44,7 @@ impl Default for EditorState {
         let mut scene = Scene::new();
         scene.spawn("Camera");
         scene.spawn("Directional Light");
-        let cube = scene.spawn("Cube");
+        let cube = scene.spawn_cube("Cube");
 
         Self {
             scene,
@@ -288,7 +288,7 @@ impl EditorTabViewer<'_> {
         ui.horizontal(|ui| {
             ui.strong("World");
             if ui.button("＋ Add Cube").clicked() {
-                let id = self.state.scene.spawn("Cube");
+                let id = self.state.scene.spawn_cube("Cube");
                 self.state.selected_entity = Some(id);
                 self.state.console_lines.push(format!("Created Cube ({})", id.0));
             }
@@ -342,6 +342,8 @@ impl EditorTabViewer<'_> {
             let yaw = *self.camera_yaw;
             let pitch = *self.camera_pitch;
             let distance = *self.camera_distance;
+            let scene = self.state.scene.clone();
+            let selected_entity = self.state.selected_entity;
             let callback = egui::PaintCallback {
                 rect,
                 callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
@@ -354,6 +356,8 @@ impl EditorTabViewer<'_> {
                             yaw,
                             pitch,
                             distance,
+                            &scene,
+                            selected_entity,
                         );
                     }
                 })),
