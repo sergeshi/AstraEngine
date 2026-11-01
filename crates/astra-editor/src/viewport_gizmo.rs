@@ -1,8 +1,10 @@
 use egui::{Color32, Painter, Pos2, Rect, Shape, Stroke};
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Quat, Vec3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode { Move, Rotate, Scale }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Space { World, Local }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axis { X, Y, Z }
 impl Axis {
@@ -18,26 +20,26 @@ pub fn project(matrix: Mat4, rect: Rect, point: Vec3) -> Option<Pos2> {
     Some(Pos2::new(rect.center().x + ndc.x * rect.width() * 0.5, rect.center().y - ndc.y * rect.height() * 0.5))
 }
 
-fn paths(mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32) -> Vec<(Axis, Vec<Pos2>)> {
+fn paths(mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32, orientation: Quat) -> Vec<(Axis, Vec<Pos2>)> {
     let mut result = Vec::new();
     for axis in [Axis::X, Axis::Y, Axis::Z] {
         let points: Vec<Pos2> = if mode == Mode::Rotate {
             let (u, v) = match axis { Axis::X => (Vec3::Y, Vec3::Z), Axis::Y => (Vec3::X, Vec3::Z), Axis::Z => (Vec3::X, Vec3::Y) };
             (0..=64).filter_map(|i| {
                 let a = i as f32 / 64.0 * std::f32::consts::TAU;
-                project(matrix, rect, origin + (u * a.cos() + v * a.sin()) * length)
+                project(matrix, rect, origin + orientation * (u * a.cos() + v * a.sin()) * length)
             }).collect()
         } else {
-            [origin, origin + axis.vector() * length].into_iter().filter_map(|p| project(matrix, rect, p)).collect()
+            [origin, origin + orientation * axis.vector() * length].into_iter().filter_map(|p| project(matrix, rect, p)).collect()
         };
         if points.len() > 1 { result.push((axis, points)); }
     }
     result
 }
 
-pub fn draw(painter: &Painter, mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32) {
+pub fn draw(painter: &Painter, mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32, orientation: Quat) {
     let center = project(matrix, rect, origin);
-    for (axis, points) in paths(mode, matrix, rect, origin, length) {
+    for (axis, points) in paths(mode, matrix, rect, origin, length, orientation) {
         let color = axis.color();
         painter.add(Shape::line(points.clone(), Stroke::new(2.6_f32, color)));
         if mode != Mode::Rotate {
@@ -49,9 +51,9 @@ pub fn draw(painter: &Painter, mode: Mode, matrix: Mat4, rect: Rect, origin: Vec
     }
 }
 
-pub fn hit_test(mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32, pointer: Pos2) -> Option<Axis> {
+pub fn hit_test(mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32, orientation: Quat, pointer: Pos2) -> Option<Axis> {
     let mut best: Option<(f32, Axis)> = None;
-    for (axis, points) in paths(mode, matrix, rect, origin, length) {
+    for (axis, points) in paths(mode, matrix, rect, origin, length, orientation) {
         for pair in points.windows(2) {
             let distance = distance_to_segment(pointer, pair[0], pair[1]);
             if distance <= 10.0 && best.is_none_or(|(d, _)| distance < d) { best = Some((distance, axis)); }
@@ -89,6 +91,16 @@ mod tests {
         let origin = project(matrix, rect, Vec3::ZERO).unwrap();
         let end = project(matrix, rect, Vec3::X * 1.5).unwrap();
         let pointer = origin + (end - origin) * 0.7;
-        assert_eq!(hit_test(Mode::Move, matrix, rect, Vec3::ZERO, 1.5, pointer), Some(Axis::X));
+        assert_eq!(hit_test(Mode::Move, matrix, rect, Vec3::ZERO, 1.5, Quat::IDENTITY, pointer), Some(Axis::X));
+    }
+    #[test]
+    fn local_orientation_rotates_gizmo_axes() {
+        let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(800.0, 600.0));
+        let matrix = crate::viewport_camera::view_projection(800, 600, 0.0, 0.0, 9.0, Vec3::ZERO);
+        let orientation = Quat::from_rotation_z(std::f32::consts::FRAC_PI_2);
+        let start = project(matrix, rect, Vec3::ZERO).unwrap();
+        let end = project(matrix, rect, orientation * Vec3::X * 1.5).unwrap();
+        let pointer = start + (end - start) * 0.7;
+        assert_eq!(hit_test(Mode::Move, matrix, rect, Vec3::ZERO, 1.5, orientation, pointer), Some(Axis::X));
     }
 }
