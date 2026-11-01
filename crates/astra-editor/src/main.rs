@@ -1,10 +1,12 @@
 mod gpu_viewport;
+mod viewport_picking;
 
 use astra_core::EngineInfo;
 use astra_scene::{EntityId, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
 use std::sync::{Arc, Mutex};
 use gpu_viewport::GpuViewport;
+use viewport_picking::pick_entity;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use serde::{Deserialize, Serialize};
 
@@ -334,6 +336,32 @@ impl EditorTabViewer<'_> {
                 *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001))
                     .clamp(2.5, 40.0);
                 ui.ctx().request_repaint();
+            }
+        }
+
+        if response.clicked_by(egui::PointerButton::Primary) {
+            if let Some(pointer_pos) = response.interact_pointer_pos() {
+                let picked = pick_entity(
+                    &self.state.scene,
+                    pointer_pos,
+                    rect,
+                    *self.camera_yaw,
+                    *self.camera_pitch,
+                    *self.camera_distance,
+                );
+                if picked != self.state.selected_entity {
+                    self.state.selected_entity = picked;
+                    if let Some(id) = picked {
+                        if let Some(entity) = self.state.scene.get(id) {
+                            self.state.console_lines.push(format!(
+                                "Selected {} ({}) from Viewport",
+                                entity.name, id.0
+                            ));
+                        }
+                    } else {
+                        self.state.console_lines.push("Viewport selection cleared.".to_owned());
+                    }
+                }
             }
         }
 
