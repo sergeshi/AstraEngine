@@ -1,0 +1,13 @@
+[package]
+name = "astra-editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-core = { path = "../astra-core" }
+astra-renderer = { path = "../astra-renderer" }
+
+[lints]
+workspace = true
