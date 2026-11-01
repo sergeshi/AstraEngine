@@ -21,7 +21,7 @@ pub fn project(matrix: Mat4, rect: Rect, point: Vec3) -> Option<Pos2> {
 fn paths(mode: Mode, matrix: Mat4, rect: Rect, origin: Vec3, length: f32) -> Vec<(Axis, Vec<Pos2>)> {
     let mut result = Vec::new();
     for axis in [Axis::X, Axis::Y, Axis::Z] {
-        let points = if mode == Mode::Rotate {
+        let points: Vec<Pos2> = if mode == Mode::Rotate {
             let (u, v) = match axis { Axis::X => (Vec3::Y, Vec3::Z), Axis::Y => (Vec3::X, Vec3::Z), Axis::Z => (Vec3::X, Vec3::Y) };
             (0..=64).filter_map(|i| {
                 let a = i as f32 / 64.0 * std::f32::consts::TAU;
@@ -39,11 +39,11 @@ pub fn draw(painter: &Painter, mode: Mode, matrix: Mat4, rect: Rect, origin: Vec
     let center = project(matrix, rect, origin);
     for (axis, points) in paths(mode, matrix, rect, origin, length) {
         let color = axis.color();
-        painter.add(Shape::line(points.clone(), Stroke::new(2.6, color)));
+        painter.add(Shape::line(points.clone(), Stroke::new(2.6_f32, color)));
         if mode != Mode::Rotate {
             if let (Some(end), Some(center)) = (points.last(), center) {
                 painter.circle_filled(*end, if mode == Mode::Scale { 6.0 } else { 4.5 }, color);
-                painter.circle_stroke(center, 3.0, Stroke::new(1.0, Color32::WHITE));
+                painter.circle_stroke(center, 3.0, Stroke::new(1.0_f32, Color32::WHITE));
             }
         }
     }
