@@ -9,6 +9,7 @@ rust-version.workspace = true
 [dependencies]
 astra-core = { path = "../astra-core" }
 astra-runtime = { path = "../astra-runtime" }
+astra-scene = { path = "../astra-scene" }
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "persistence"] }
 egui = "0.31.1"
 glam = "0.30"
