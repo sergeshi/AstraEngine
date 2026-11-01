@@ -56,7 +56,10 @@ impl Scene {
     }
 
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
-        self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
+        self.next_id = self
+            .next_id
+            .max(self.entities.keys().map(|id| id.0).max().unwrap_or(0))
+            + 1;
         let id = EntityId(self.next_id);
         self.entities.insert(
             id,
@@ -132,7 +135,10 @@ mod tests {
     fn spawned_cube_has_renderable_primitive_mesh() {
         let mut scene = Scene::new();
         let cube = scene.spawn_cube("Cube");
-        assert_eq!(scene.get(cube).expect("cube exists").mesh, Some(PrimitiveMesh::Cube));
+        assert_eq!(
+            scene.get(cube).expect("cube exists").mesh,
+            Some(PrimitiveMesh::Cube)
+        );
         let empty = scene.spawn("Empty");
         assert_eq!(scene.get(empty).expect("empty entity exists").mesh, None);
     }
@@ -153,7 +159,11 @@ mod tests {
     fn scene_round_trip_preserves_entities_and_next_identifier() {
         let mut scene = Scene::new();
         let cube = scene.spawn("Cube");
-        scene.get_mut(cube).expect("cube exists").transform.translation = [1.0, 2.0, 3.0];
+        scene
+            .get_mut(cube)
+            .expect("cube exists")
+            .transform
+            .translation = [1.0, 2.0, 3.0];
 
         let encoded = serde_json::to_string(&scene).expect("scene serializes");
         let mut decoded: Scene = serde_json::from_str(&encoded).expect("scene deserializes");

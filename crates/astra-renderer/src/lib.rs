@@ -42,6 +42,9 @@ mod tests {
 
     #[test]
     fn windows_default_prefers_direct3d12() {
-        assert_eq!(RendererConfig::default().backend, GraphicsBackend::Direct3D12);
+        assert_eq!(
+            RendererConfig::default().backend,
+            GraphicsBackend::Direct3D12
+        );
     }
 }

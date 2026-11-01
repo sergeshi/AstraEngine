@@ -1,9 +1,9 @@
 #![allow(unsafe_code)]
 
-use eframe::glow::{self, HasContext};
-use astra_scene::{EntityId, PrimitiveMesh, Scene};
-use glam::{EulerRot, Mat4, Quat, Vec3};
 use crate::viewport_camera;
+use astra_scene::{EntityId, PrimitiveMesh, Scene};
+use eframe::glow::{self, HasContext};
+use glam::{EulerRot, Mat4, Quat, Vec3};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -167,21 +167,84 @@ fn build_grid_vertices() -> Vec<Vertex> {
     }
 
     // World axes: X red, Y green, Z blue.
-    push_line(&mut vertices, [-20.0, 0.002, 0.0], [20.0, 0.002, 0.0], [0.85, 0.24, 0.22]);
-    push_line(&mut vertices, [0.0, -20.0, 0.0], [0.0, 20.0, 0.0], [0.25, 0.82, 0.42]);
-    push_line(&mut vertices, [0.0, 0.002, -20.0], [0.0, 0.002, 20.0], [0.25, 0.48, 0.95]);
+    push_line(
+        &mut vertices,
+        [-20.0, 0.002, 0.0],
+        [20.0, 0.002, 0.0],
+        [0.85, 0.24, 0.22],
+    );
+    push_line(
+        &mut vertices,
+        [0.0, -20.0, 0.0],
+        [0.0, 20.0, 0.0],
+        [0.25, 0.82, 0.42],
+    );
+    push_line(
+        &mut vertices,
+        [0.0, 0.002, -20.0],
+        [0.0, 0.002, 20.0],
+        [0.25, 0.48, 0.95],
+    );
     vertices
 }
 
 fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec<Vertex> {
     let mut vertices = build_grid_vertices();
     let cube_faces: [([f32; 3], [[f32; 3]; 4]); 6] = [
-        ([0.78, 0.31, 0.27], [[-1.0,-1.0, 1.0],[1.0,-1.0, 1.0],[1.0,1.0,1.0],[-1.0,1.0,1.0]]),
-        ([0.30, 0.66, 0.39], [[1.0,-1.0,-1.0],[-1.0,-1.0,-1.0],[-1.0,1.0,-1.0],[1.0,1.0,-1.0]]),
-        ([0.28, 0.48, 0.82], [[-1.0,-1.0,-1.0],[-1.0,-1.0,1.0],[-1.0,1.0,1.0],[-1.0,1.0,-1.0]]),
-        ([0.83, 0.68, 0.28], [[1.0,-1.0,1.0],[1.0,-1.0,-1.0],[1.0,1.0,-1.0],[1.0,1.0,1.0]]),
-        ([0.65, 0.40, 0.78], [[-1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,-1.0],[-1.0,1.0,-1.0]]),
-        ([0.30, 0.68, 0.73], [[-1.0,-1.0,-1.0],[1.0,-1.0,-1.0],[1.0,-1.0,1.0],[-1.0,-1.0,1.0]]),
+        (
+            [0.78, 0.31, 0.27],
+            [
+                [-1.0, -1.0, 1.0],
+                [1.0, -1.0, 1.0],
+                [1.0, 1.0, 1.0],
+                [-1.0, 1.0, 1.0],
+            ],
+        ),
+        (
+            [0.30, 0.66, 0.39],
+            [
+                [1.0, -1.0, -1.0],
+                [-1.0, -1.0, -1.0],
+                [-1.0, 1.0, -1.0],
+                [1.0, 1.0, -1.0],
+            ],
+        ),
+        (
+            [0.28, 0.48, 0.82],
+            [
+                [-1.0, -1.0, -1.0],
+                [-1.0, -1.0, 1.0],
+                [-1.0, 1.0, 1.0],
+                [-1.0, 1.0, -1.0],
+            ],
+        ),
+        (
+            [0.83, 0.68, 0.28],
+            [
+                [1.0, -1.0, 1.0],
+                [1.0, -1.0, -1.0],
+                [1.0, 1.0, -1.0],
+                [1.0, 1.0, 1.0],
+            ],
+        ),
+        (
+            [0.65, 0.40, 0.78],
+            [
+                [-1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, -1.0],
+                [-1.0, 1.0, -1.0],
+            ],
+        ),
+        (
+            [0.30, 0.68, 0.73],
+            [
+                [-1.0, -1.0, -1.0],
+                [1.0, -1.0, -1.0],
+                [1.0, -1.0, 1.0],
+                [-1.0, -1.0, 1.0],
+            ],
+        ),
     ];
 
     for entity in scene.iter() {
@@ -200,10 +263,17 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
         );
         let selected = selected_entity == Some(entity.id);
         for (face_color, corners) in cube_faces {
-            let color = if selected { [0.98, 0.78, 0.28] } else { face_color };
+            let color = if selected {
+                [0.98, 0.78, 0.28]
+            } else {
+                face_color
+            };
             for index in [0, 1, 2, 0, 2, 3] {
                 let position = transform.transform_point3(Vec3::from_array(corners[index]));
-                vertices.push(Vertex { position: position.to_array(), color });
+                vertices.push(Vertex {
+                    position: position.to_array(),
+                    color,
+                });
             }
         }
     }

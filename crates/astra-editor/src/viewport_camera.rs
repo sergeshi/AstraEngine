@@ -49,8 +49,7 @@ pub fn pan_target(
     let world_per_pixel =
         (2.0 * distance.clamp(2.5, 80.0) * FRAC_PI_4.tan()) / viewport_height.max(1.0);
 
-    target - right * pointer_delta.x * world_per_pixel
-        + up * pointer_delta.y * world_per_pixel
+    target - right * pointer_delta.x * world_per_pixel + up * pointer_delta.y * world_per_pixel
 }
 
 #[cfg(test)]
@@ -79,9 +78,6 @@ mod tests {
     #[test]
     fn zero_pointer_delta_does_not_move_camera_target() {
         let target = Vec3::new(1.0, 2.0, 3.0);
-        assert_eq!(
-            pan_target(target, 0.5, 0.3, 8.0, Vec2::ZERO, 700.0),
-            target
-        );
+        assert_eq!(pan_target(target, 0.5, 0.3, 8.0, Vec2::ZERO, 700.0), target);
     }
 }

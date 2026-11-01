@@ -1,7 +1,7 @@
+use crate::viewport_camera;
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use egui::{Pos2, Rect};
 use glam::{EulerRot, Mat4, Quat, Vec3, Vec4};
-use crate::viewport_camera;
 
 /// Returns the closest cube intersected by the pointer ray in the viewport.
 pub fn pick_entity(
@@ -128,7 +128,15 @@ mod tests {
         let cube = scene.spawn_cube("Cube");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
+        let picked = pick_entity(
+            &scene,
+            center_of(viewport),
+            viewport,
+            0.0,
+            0.0,
+            9.0,
+            [0.0; 3],
+        );
 
         assert_eq!(picked, Some(cube));
     }
@@ -141,7 +149,15 @@ mod tests {
         let nearer = scene.spawn_cube("Nearer");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
+        let picked = pick_entity(
+            &scene,
+            center_of(viewport),
+            viewport,
+            0.0,
+            0.0,
+            9.0,
+            [0.0; 3],
+        );
 
         assert_eq!(picked, Some(nearer));
     }
@@ -172,7 +188,15 @@ mod tests {
         scene.spawn("Camera");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
+        let picked = pick_entity(
+            &scene,
+            center_of(viewport),
+            viewport,
+            0.0,
+            0.0,
+            9.0,
+            [0.0; 3],
+        );
 
         assert_eq!(picked, None);
     }
@@ -183,7 +207,15 @@ mod tests {
         scene.spawn_cube("Cube");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, Pos2::new(120.0, 50.0), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
+        let picked = pick_entity(
+            &scene,
+            Pos2::new(120.0, 50.0),
+            viewport,
+            0.0,
+            0.0,
+            9.0,
+            [0.0; 3],
+        );
 
         assert_eq!(picked, None);
     }

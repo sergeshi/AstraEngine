@@ -1,17 +1,17 @@
 mod gpu_viewport;
 mod viewport_camera;
-mod viewport_picking;
 mod viewport_gizmo;
+mod viewport_picking;
 
 use astra_core::EngineInfo;
 use astra_scene::{EntityId, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
-use std::sync::{Arc, Mutex};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use glam::{EulerRot, Quat, Vec3};
 use gpu_viewport::GpuViewport;
-use viewport_picking::pick_entity;
-use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
+use viewport_picking::pick_entity;
 
 const DOCK_STATE_KEY: &str = "astra_editor_dock_state";
 const EDITOR_STATE_KEY: &str = "astra_editor_state";
@@ -66,10 +66,8 @@ fn default_dock_state() -> DockState<EditorTab> {
     let mut dock = DockState::new(vec![EditorTab::Viewport]);
     let tree = dock.main_surface_mut();
 
-    let [center, _hierarchy] =
-        tree.split_left(NodeIndex::root(), 0.20, vec![EditorTab::Hierarchy]);
-    let [center, _inspector] =
-        tree.split_right(center, 0.76, vec![EditorTab::Inspector]);
+    let [center, _hierarchy] = tree.split_left(NodeIndex::root(), 0.20, vec![EditorTab::Hierarchy]);
+    let [center, _inspector] = tree.split_right(center, 0.76, vec![EditorTab::Inspector]);
     tree.split_below(
         center,
         0.72,
@@ -80,7 +78,13 @@ fn default_dock_state() -> DockState<EditorTab> {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct GizmoDrag { entity: EntityId, axis: viewport_gizmo::Axis, start: egui::Pos2, initial: [f32; 3], basis: Quat }
+struct GizmoDrag {
+    entity: EntityId,
+    axis: viewport_gizmo::Axis,
+    start: egui::Pos2,
+    initial: [f32; 3],
+    basis: Quat,
+}
 
 struct AstraEditor {
     dock_state: DockState<EditorTab>,
@@ -110,11 +114,15 @@ impl AstraEditor {
 
         let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
             Ok(renderer) => {
-                state.console_lines.push("OpenGL viewport renderer initialized.".to_owned());
+                state
+                    .console_lines
+                    .push("OpenGL viewport renderer initialized.".to_owned());
                 Some(Arc::new(Mutex::new(renderer)))
             }
             Err(error) => {
-                state.console_lines.push(format!("GPU viewport initialization failed: {error}"));
+                state
+                    .console_lines
+                    .push(format!("GPU viewport initialization failed: {error}"));
                 None
             }
         });
@@ -190,7 +198,9 @@ impl AstraEditor {
         egui::TopBottomPanel::top("editor_toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button("＋ New").clicked() {
-                    self.log("New project command selected (project wizard is not implemented yet).");
+                    self.log(
+                        "New project command selected (project wizard is not implemented yet).",
+                    );
                 }
                 if ui.button("Save").clicked() {
                     self.log("Save requested (scene serialization is not implemented yet).");
@@ -203,12 +213,34 @@ impl AstraEditor {
                     self.log("Stop requested.");
                 }
                 ui.separator();
-                for (label, mode) in [("W Move", viewport_gizmo::Mode::Move), ("E Rotate", viewport_gizmo::Mode::Rotate), ("R Scale", viewport_gizmo::Mode::Scale)] {
-                    if ui.selectable_label(self.gizmo_mode == mode, label).clicked() { self.gizmo_mode = mode; self.gizmo_drag = None; }
+                for (label, mode) in [
+                    ("W Move", viewport_gizmo::Mode::Move),
+                    ("E Rotate", viewport_gizmo::Mode::Rotate),
+                    ("R Scale", viewport_gizmo::Mode::Scale),
+                ] {
+                    if ui
+                        .selectable_label(self.gizmo_mode == mode, label)
+                        .clicked()
+                    {
+                        self.gizmo_mode = mode;
+                        self.gizmo_drag = None;
+                    }
                 }
                 ui.separator();
-                if ui.selectable_label(self.gizmo_space == viewport_gizmo::Space::World, "World").clicked() { self.gizmo_space = viewport_gizmo::Space::World; self.gizmo_drag = None; }
-                if ui.selectable_label(self.gizmo_space == viewport_gizmo::Space::Local, "Local").clicked() { self.gizmo_space = viewport_gizmo::Space::Local; self.gizmo_drag = None; }
+                if ui
+                    .selectable_label(self.gizmo_space == viewport_gizmo::Space::World, "World")
+                    .clicked()
+                {
+                    self.gizmo_space = viewport_gizmo::Space::World;
+                    self.gizmo_drag = None;
+                }
+                if ui
+                    .selectable_label(self.gizmo_space == viewport_gizmo::Space::Local, "Local")
+                    .clicked()
+                {
+                    self.gizmo_space = viewport_gizmo::Space::Local;
+                    self.gizmo_drag = None;
+                }
                 ui.separator();
                 ui.label("Scene: Untitled");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -232,7 +264,8 @@ impl eframe::App for AstraEditor {
                     ui.separator();
                     ui.small(format!(
                         "Selected: {}",
-                        self.state.selected_entity
+                        self.state
+                            .selected_entity
                             .and_then(|id| self.state.scene.get(id))
                             .map(|entity| entity.name.as_str())
                             .unwrap_or("None")
@@ -243,23 +276,22 @@ impl eframe::App for AstraEditor {
                 });
             });
 
-        egui::CentralPanel::default()
-            .show(ctx, |ui| {
-                let mut viewer = EditorTabViewer {
-                    state: &mut self.state,
-                    gpu_viewport: self.gpu_viewport.clone(),
-                    camera_yaw: &mut self.camera_yaw,
-                    camera_pitch: &mut self.camera_pitch,
-                    camera_distance: &mut self.camera_distance,
-                    camera_target: &mut self.camera_target,
-                    gizmo_mode: &mut self.gizmo_mode,
-                    gizmo_space: &mut self.gizmo_space,
-                    gizmo_drag: &mut self.gizmo_drag,
-                };
-                DockArea::new(&mut self.dock_state)
-                    .style(Style::from_egui(ui.style()))
-                    .show_inside(ui, &mut viewer);
-            });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let mut viewer = EditorTabViewer {
+                state: &mut self.state,
+                gpu_viewport: self.gpu_viewport.clone(),
+                camera_yaw: &mut self.camera_yaw,
+                camera_pitch: &mut self.camera_pitch,
+                camera_distance: &mut self.camera_distance,
+                camera_target: &mut self.camera_target,
+                gizmo_mode: &mut self.gizmo_mode,
+                gizmo_space: &mut self.gizmo_space,
+                gizmo_drag: &mut self.gizmo_drag,
+            };
+            DockArea::new(&mut self.dock_state)
+                .style(Style::from_egui(ui.style()))
+                .show_inside(ui, &mut viewer);
+        });
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -321,26 +353,36 @@ impl EditorTabViewer<'_> {
             if ui.button("＋ Add Cube").clicked() {
                 let id = self.state.scene.spawn_cube("Cube");
                 self.state.selected_entity = Some(id);
-                self.state.console_lines.push(format!("Created Cube ({})", id.0));
+                self.state
+                    .console_lines
+                    .push(format!("Created Cube ({})", id.0));
             }
             if ui.button("− Delete").clicked() {
                 if let Some(id) = self.state.selected_entity {
                     if self.state.scene.remove(id).is_some() {
-                        self.state.selected_entity = self.state.scene.iter().next().map(|entity| entity.id);
-                        self.state.console_lines.push(format!("Deleted entity ({})", id.0));
+                        self.state.selected_entity =
+                            self.state.scene.iter().next().map(|entity| entity.id);
+                        self.state
+                            .console_lines
+                            .push(format!("Deleted entity ({})", id.0));
                     }
                 }
             }
         });
         ui.separator();
 
-        let entities: Vec<(EntityId, String)> = self.state.scene
+        let entities: Vec<(EntityId, String)> = self
+            .state
+            .scene
             .iter()
             .map(|entity| (entity.id, entity.name.clone()))
             .collect();
         for (id, name) in entities {
             let selected = self.state.selected_entity == Some(id);
-            if ui.selectable_label(selected, format!("◇  {name}")).clicked() {
+            if ui
+                .selectable_label(selected, format!("◇  {name}"))
+                .clicked()
+            {
                 self.state.selected_entity = Some(id);
             }
         }
@@ -355,50 +397,119 @@ impl EditorTabViewer<'_> {
 
         if response.hovered() {
             ui.input(|input| {
-                if input.key_pressed(egui::Key::W) { *self.gizmo_mode = viewport_gizmo::Mode::Move; *self.gizmo_drag = None; }
-                if input.key_pressed(egui::Key::E) { *self.gizmo_mode = viewport_gizmo::Mode::Rotate; *self.gizmo_drag = None; }
-                if input.key_pressed(egui::Key::R) { *self.gizmo_mode = viewport_gizmo::Mode::Scale; *self.gizmo_drag = None; }
+                if input.key_pressed(egui::Key::W) {
+                    *self.gizmo_mode = viewport_gizmo::Mode::Move;
+                    *self.gizmo_drag = None;
+                }
+                if input.key_pressed(egui::Key::E) {
+                    *self.gizmo_mode = viewport_gizmo::Mode::Rotate;
+                    *self.gizmo_drag = None;
+                }
+                if input.key_pressed(egui::Key::R) {
+                    *self.gizmo_mode = viewport_gizmo::Mode::Scale;
+                    *self.gizmo_drag = None;
+                }
             });
         }
 
-        let selected_transform = self.state.selected_entity.and_then(|id| self.state.scene.get(id)).map(|e| e.transform);
+        let selected_transform = self
+            .state
+            .selected_entity
+            .and_then(|id| self.state.scene.get(id))
+            .map(|e| e.transform);
         let selected_position = selected_transform.map(|transform| transform.translation);
-        let selected_orientation = selected_transform.map(|transform| Quat::from_euler(EulerRot::XYZ, transform.rotation[0], transform.rotation[1], transform.rotation[2])).unwrap_or(Quat::IDENTITY);
-        let gizmo_basis = if *self.gizmo_space == viewport_gizmo::Space::Local { selected_orientation } else { Quat::IDENTITY };
-        let camera_matrix = viewport_gizmo::matrix(rect.width(), rect.height(), *self.camera_yaw, *self.camera_pitch, *self.camera_distance, Vec3::from_array(*self.camera_target));
+        let selected_orientation = selected_transform
+            .map(|transform| {
+                Quat::from_euler(
+                    EulerRot::XYZ,
+                    transform.rotation[0],
+                    transform.rotation[1],
+                    transform.rotation[2],
+                )
+            })
+            .unwrap_or(Quat::IDENTITY);
+        let gizmo_basis = if *self.gizmo_space == viewport_gizmo::Space::Local {
+            selected_orientation
+        } else {
+            Quat::IDENTITY
+        };
+        let camera_matrix = viewport_gizmo::matrix(
+            rect.width(),
+            rect.height(),
+            *self.camera_yaw,
+            *self.camera_pitch,
+            *self.camera_distance,
+            Vec3::from_array(*self.camera_target),
+        );
         let gizmo_length = (*self.camera_distance * 0.19).clamp(0.8, 2.8);
 
         if response.drag_started_by(egui::PointerButton::Primary) {
-            if let (Some(pointer), Some(id), Some(position)) = (response.interact_pointer_pos(), self.state.selected_entity, selected_position) {
-                if let Some(axis) = viewport_gizmo::hit_test(*self.gizmo_mode, camera_matrix, rect, Vec3::from_array(position), gizmo_length, gizmo_basis, pointer) {
-                    let initial = self.state.scene.get(id).map(|e| match *self.gizmo_mode {
-                        viewport_gizmo::Mode::Move => e.transform.translation,
-                        viewport_gizmo::Mode::Rotate => e.transform.rotation,
-                        viewport_gizmo::Mode::Scale => e.transform.scale,
-                    }).unwrap_or([0.0; 3]);
-                    *self.gizmo_drag = Some(GizmoDrag { entity: id, axis, start: pointer, initial, basis: gizmo_basis });
-                } else { *self.gizmo_drag = None; }
+            if let (Some(pointer), Some(id), Some(position)) = (
+                response.interact_pointer_pos(),
+                self.state.selected_entity,
+                selected_position,
+            ) {
+                if let Some(axis) = viewport_gizmo::hit_test(
+                    *self.gizmo_mode,
+                    camera_matrix,
+                    rect,
+                    Vec3::from_array(position),
+                    gizmo_length,
+                    gizmo_basis,
+                    pointer,
+                ) {
+                    let initial = self
+                        .state
+                        .scene
+                        .get(id)
+                        .map(|e| match *self.gizmo_mode {
+                            viewport_gizmo::Mode::Move => e.transform.translation,
+                            viewport_gizmo::Mode::Rotate => e.transform.rotation,
+                            viewport_gizmo::Mode::Scale => e.transform.scale,
+                        })
+                        .unwrap_or([0.0; 3]);
+                    *self.gizmo_drag = Some(GizmoDrag {
+                        entity: id,
+                        axis,
+                        start: pointer,
+                        initial,
+                        basis: gizmo_basis,
+                    });
+                } else {
+                    *self.gizmo_drag = None;
+                }
             }
         }
 
         if response.dragged_by(egui::PointerButton::Primary) {
-            if let (Some(drag), Some(pointer)) = (*self.gizmo_drag, response.interact_pointer_pos()) {
+            if let (Some(drag), Some(pointer)) = (*self.gizmo_drag, response.interact_pointer_pos())
+            {
                 let delta = pointer - drag.start;
                 if let Some(entity) = self.state.scene.get_mut(drag.entity) {
                     let index = drag.axis.index();
                     match *self.gizmo_mode {
                         viewport_gizmo::Mode::Move => {
-                            let local_axis = match drag.axis { viewport_gizmo::Axis::X => Vec3::X, viewport_gizmo::Axis::Y => Vec3::Y, viewport_gizmo::Axis::Z => Vec3::Z };
+                            let local_axis = match drag.axis {
+                                viewport_gizmo::Axis::X => Vec3::X,
+                                viewport_gizmo::Axis::Y => Vec3::Y,
+                                viewport_gizmo::Axis::Z => Vec3::Z,
+                            };
                             let axis = drag.basis * local_axis;
                             let origin = Vec3::from_array(drag.initial);
                             if let (Some(a), Some(b)) = (
                                 viewport_gizmo::project(camera_matrix, rect, origin),
-                                viewport_gizmo::project(camera_matrix, rect, origin + axis * gizmo_length),
+                                viewport_gizmo::project(
+                                    camera_matrix,
+                                    rect,
+                                    origin + axis * gizmo_length,
+                                ),
                             ) {
                                 let screen_axis = b - a;
-                                let pixels_per_unit = screen_axis.length() / gizmo_length.max(0.001);
+                                let pixels_per_unit =
+                                    screen_axis.length() / gizmo_length.max(0.001);
                                 if pixels_per_unit > 0.01 {
-                                    let amount = delta.dot(screen_axis.normalized()) / pixels_per_unit;
+                                    let amount =
+                                        delta.dot(screen_axis.normalized()) / pixels_per_unit;
                                     let value = Vec3::from_array(drag.initial) + axis * amount;
                                     entity.transform.translation = value.to_array();
                                 }
@@ -406,13 +517,23 @@ impl EditorTabViewer<'_> {
                         }
                         viewport_gizmo::Mode::Rotate => {
                             let amount = (delta.x - delta.y) * 0.01;
-                            let local_axis = match drag.axis { viewport_gizmo::Axis::X => Vec3::X, viewport_gizmo::Axis::Y => Vec3::Y, viewport_gizmo::Axis::Z => Vec3::Z };
-                            let initial_rotation = Quat::from_euler(EulerRot::XYZ, drag.initial[0], drag.initial[1], drag.initial[2]);
-                            let delta_rotation = if *self.gizmo_space == viewport_gizmo::Space::Local {
-                                Quat::from_axis_angle(local_axis, amount)
-                            } else {
-                                Quat::from_axis_angle(drag.basis * local_axis, amount)
+                            let local_axis = match drag.axis {
+                                viewport_gizmo::Axis::X => Vec3::X,
+                                viewport_gizmo::Axis::Y => Vec3::Y,
+                                viewport_gizmo::Axis::Z => Vec3::Z,
                             };
+                            let initial_rotation = Quat::from_euler(
+                                EulerRot::XYZ,
+                                drag.initial[0],
+                                drag.initial[1],
+                                drag.initial[2],
+                            );
+                            let delta_rotation =
+                                if *self.gizmo_space == viewport_gizmo::Space::Local {
+                                    Quat::from_axis_angle(local_axis, amount)
+                                } else {
+                                    Quat::from_axis_angle(drag.basis * local_axis, amount)
+                                };
                             let rotation = if *self.gizmo_space == viewport_gizmo::Space::Local {
                                 initial_rotation * delta_rotation
                             } else {
@@ -423,7 +544,9 @@ impl EditorTabViewer<'_> {
                         }
                         viewport_gizmo::Mode::Scale => {
                             let mut value = drag.initial;
-                            value[index] = (drag.initial[index] * (1.0 + (delta.x - delta.y) * 0.01)).max(0.01);
+                            value[index] = (drag.initial[index]
+                                * (1.0 + (delta.x - delta.y) * 0.01))
+                                .max(0.01);
                             entity.transform.scale = value;
                         }
                     }
@@ -431,7 +554,9 @@ impl EditorTabViewer<'_> {
                 ui.ctx().request_repaint();
             }
         }
-        if response.drag_stopped_by(egui::PointerButton::Primary) { *self.gizmo_drag = None; }
+        if response.drag_stopped_by(egui::PointerButton::Primary) {
+            *self.gizmo_drag = None;
+        }
 
         if response.dragged_by(egui::PointerButton::Primary) && self.gizmo_drag.is_none() {
             let delta = ui.input(|input| input.pointer.delta());
@@ -441,41 +566,102 @@ impl EditorTabViewer<'_> {
         }
         if response.dragged_by(egui::PointerButton::Middle) {
             let delta = ui.input(|input| input.pointer.delta());
-            *self.camera_target = viewport_camera::pan_target(Vec3::from_array(*self.camera_target), *self.camera_yaw, *self.camera_pitch, *self.camera_distance, glam::Vec2::new(delta.x, delta.y), rect.height()).to_array();
+            *self.camera_target = viewport_camera::pan_target(
+                Vec3::from_array(*self.camera_target),
+                *self.camera_yaw,
+                *self.camera_pitch,
+                *self.camera_distance,
+                glam::Vec2::new(delta.x, delta.y),
+                rect.height(),
+            )
+            .to_array();
             ui.ctx().request_repaint();
         }
         if response.hovered() {
-            let (scroll, focus_pressed) = ui.input(|input| (input.raw_scroll_delta.y, input.key_pressed(egui::Key::F)));
-            if scroll.abs() > 0.0 { *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001)).clamp(2.5, 80.0); ui.ctx().request_repaint(); }
-            if focus_pressed { if let Some(position) = selected_position { *self.camera_target = position; ui.ctx().request_repaint(); } }
+            let (scroll, focus_pressed) =
+                ui.input(|input| (input.raw_scroll_delta.y, input.key_pressed(egui::Key::F)));
+            if scroll.abs() > 0.0 {
+                *self.camera_distance =
+                    (*self.camera_distance * (1.0 - scroll * 0.001)).clamp(2.5, 80.0);
+                ui.ctx().request_repaint();
+            }
+            if focus_pressed {
+                if let Some(position) = selected_position {
+                    *self.camera_target = position;
+                    ui.ctx().request_repaint();
+                }
+            }
         }
 
         if response.clicked_by(egui::PointerButton::Primary) && self.gizmo_drag.is_none() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
-                self.state.selected_entity = pick_entity(&self.state.scene, pointer_pos, rect, *self.camera_yaw, *self.camera_pitch, *self.camera_distance, *self.camera_target);
+                self.state.selected_entity = pick_entity(
+                    &self.state.scene,
+                    pointer_pos,
+                    rect,
+                    *self.camera_yaw,
+                    *self.camera_pitch,
+                    *self.camera_distance,
+                    *self.camera_target,
+                );
             }
         }
 
         if let Some(renderer) = &self.gpu_viewport {
             let renderer = Arc::clone(renderer);
-            let yaw = *self.camera_yaw; let pitch = *self.camera_pitch; let distance = *self.camera_distance;
-            let target = *self.camera_target; let scene = self.state.scene.clone(); let selected_entity = self.state.selected_entity;
-            ui.painter().add(egui::PaintCallback { rect, callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
-                if let Ok(renderer) = renderer.lock() {
-                    let viewport = info.viewport_in_pixels();
-                    renderer.paint(painter.gl(), viewport.width_px, viewport.height_px, yaw, pitch, distance, target, &scene, selected_entity);
-                }
-            }))});
+            let yaw = *self.camera_yaw;
+            let pitch = *self.camera_pitch;
+            let distance = *self.camera_distance;
+            let target = *self.camera_target;
+            let scene = self.state.scene.clone();
+            let selected_entity = self.state.selected_entity;
+            ui.painter().add(egui::PaintCallback {
+                rect,
+                callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
+                    if let Ok(renderer) = renderer.lock() {
+                        let viewport = info.viewport_in_pixels();
+                        renderer.paint(
+                            painter.gl(),
+                            viewport.width_px,
+                            viewport.height_px,
+                            yaw,
+                            pitch,
+                            distance,
+                            target,
+                            &scene,
+                            selected_entity,
+                        );
+                    }
+                })),
+            });
         } else {
-            ui.painter().rect_filled(rect, 0.0, egui::Color32::from_rgb(27, 31, 39));
+            ui.painter()
+                .rect_filled(rect, 0.0, egui::Color32::from_rgb(27, 31, 39));
         }
 
         if let Some(position) = selected_position {
-            viewport_gizmo::draw(ui.painter(), *self.gizmo_mode, camera_matrix, rect, Vec3::from_array(position), gizmo_length, gizmo_basis);
+            viewport_gizmo::draw(
+                ui.painter(),
+                *self.gizmo_mode,
+                camera_matrix,
+                rect,
+                Vec3::from_array(position),
+                gizmo_length,
+                gizmo_basis,
+            );
         }
         let painter = ui.painter();
-        painter.text(rect.left_top() + egui::vec2(14.0, 12.0), egui::Align2::LEFT_TOP,
-            format!("PERSPECTIVE · {:?} GIZMO · {:?}", self.gizmo_mode, self.gizmo_space).to_uppercase(), egui::FontId::monospace(12.0), egui::Color32::from_rgb(195, 205, 220));
+        painter.text(
+            rect.left_top() + egui::vec2(14.0, 12.0),
+            egui::Align2::LEFT_TOP,
+            format!(
+                "PERSPECTIVE · {:?} GIZMO · {:?}",
+                self.gizmo_mode, self.gizmo_space
+            )
+            .to_uppercase(),
+            egui::FontId::monospace(12.0),
+            egui::Color32::from_rgb(195, 205, 220),
+        );
         painter.text(rect.left_bottom() + egui::vec2(14.0, -12.0), egui::Align2::LEFT_BOTTOM,
             "LMB drag: orbit / gizmo   ·   MMB: pan   ·   Wheel: zoom   ·   F: focus   ·   W/E/R: tools",
             egui::FontId::proportional(12.0), egui::Color32::from_rgb(150, 164, 183));
@@ -599,10 +785,7 @@ mod tests {
     #[test]
     fn default_layout_contains_all_five_editor_panels() {
         let dock = default_dock_state();
-        let tabs: Vec<EditorTab> = dock
-            .iter_all_tabs()
-            .map(|(_, tab)| *tab)
-            .collect();
+        let tabs: Vec<EditorTab> = dock.iter_all_tabs().map(|(_, tab)| *tab).collect();
 
         for expected in [
             EditorTab::Hierarchy,
@@ -619,7 +802,14 @@ mod tests {
     fn editor_state_has_a_default_selection() {
         let state = EditorState::default();
         let selected = state.selected_entity.expect("default entity is selected");
-        assert_eq!(state.scene.get(selected).expect("selected entity exists").name, "Cube");
+        assert_eq!(
+            state
+                .scene
+                .get(selected)
+                .expect("selected entity exists")
+                .name,
+            "Cube"
+        );
         assert_eq!(state.scene.len(), 3);
     }
 }
