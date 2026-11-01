@@ -1,10 +1,12 @@
 mod gpu_viewport;
+mod viewport_camera;
 mod viewport_picking;
 
 use astra_core::EngineInfo;
 use astra_scene::{EntityId, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
 use std::sync::{Arc, Mutex};
+use glam::Vec3;
 use gpu_viewport::GpuViewport;
 use viewport_picking::pick_entity;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
@@ -83,6 +85,7 @@ struct AstraEditor {
     camera_yaw: f32,
     camera_pitch: f32,
     camera_distance: f32,
+    camera_target: [f32; 3],
 }
 
 impl AstraEditor {
@@ -116,6 +119,7 @@ impl AstraEditor {
             camera_yaw: 0.75,
             camera_pitch: 0.48,
             camera_distance: 9.0,
+            camera_target: [0.0, 0.0, 0.0],
         }
     }
 
@@ -230,6 +234,7 @@ impl eframe::App for AstraEditor {
                     camera_yaw: &mut self.camera_yaw,
                     camera_pitch: &mut self.camera_pitch,
                     camera_distance: &mut self.camera_distance,
+                    camera_target: &mut self.camera_target,
                 };
                 DockArea::new(&mut self.dock_state)
                     .style(Style::from_egui(ui.style()))
@@ -261,6 +266,7 @@ struct EditorTabViewer<'a> {
     camera_yaw: &'a mut f32,
     camera_pitch: &'a mut f32,
     camera_distance: &'a mut f32,
+    camera_target: &'a mut [f32; 3],
 }
 
 impl TabViewer for EditorTabViewer<'_> {
@@ -325,17 +331,42 @@ impl EditorTabViewer<'_> {
         let (rect, response) = ui.allocate_exact_size(available, Sense::click_and_drag());
 
         if response.dragged_by(egui::PointerButton::Primary) {
-            let delta = response.drag_delta();
+            let delta = ui.input(|input| input.pointer.delta());
             *self.camera_yaw -= delta.x * 0.008;
             *self.camera_pitch = (*self.camera_pitch + delta.y * 0.008).clamp(-1.3, 1.3);
             ui.ctx().request_repaint();
         }
+        if response.dragged_by(egui::PointerButton::Middle) {
+            let delta = ui.input(|input| input.pointer.delta());
+            let target = viewport_camera::pan_target(
+                Vec3::from_array(*self.camera_target),
+                *self.camera_yaw,
+                *self.camera_pitch,
+                *self.camera_distance,
+                glam::Vec2::new(delta.x, delta.y),
+                rect.height(),
+            );
+            *self.camera_target = target.to_array();
+            ui.ctx().request_repaint();
+        }
         if response.hovered() {
-            let scroll = ui.input(|input| input.raw_scroll_delta.y);
+            let (scroll, focus_pressed) = ui.input(|input| {
+                (input.raw_scroll_delta.y, input.key_pressed(egui::Key::F))
+            });
             if scroll.abs() > 0.0 {
                 *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001))
-                    .clamp(2.5, 40.0);
+                    .clamp(2.5, 80.0);
                 ui.ctx().request_repaint();
+            }
+            if focus_pressed {
+                if let Some(position) = self.state.selected_entity
+                    .and_then(|id| self.state.scene.get(id))
+                    .map(|entity| entity.transform.translation)
+                {
+                    *self.camera_target = position;
+                    self.state.console_lines.push("Viewport camera focused on selected entity.".to_owned());
+                    ui.ctx().request_repaint();
+                }
             }
         }
 
@@ -348,6 +379,7 @@ impl EditorTabViewer<'_> {
                     *self.camera_yaw,
                     *self.camera_pitch,
                     *self.camera_distance,
+                    *self.camera_target,
                 );
                 if picked != self.state.selected_entity {
                     self.state.selected_entity = picked;
@@ -370,6 +402,7 @@ impl EditorTabViewer<'_> {
             let yaw = *self.camera_yaw;
             let pitch = *self.camera_pitch;
             let distance = *self.camera_distance;
+            let target = *self.camera_target;
             let scene = self.state.scene.clone();
             let selected_entity = self.state.selected_entity;
             let callback = egui::PaintCallback {
@@ -384,6 +417,7 @@ impl EditorTabViewer<'_> {
                             yaw,
                             pitch,
                             distance,
+                            target,
                             &scene,
                             selected_entity,
                         );
@@ -413,7 +447,7 @@ impl EditorTabViewer<'_> {
         painter.text(
             rect.left_bottom() + egui::vec2(14.0, -12.0),
             egui::Align2::LEFT_BOTTOM,
-            "LMB drag: orbit   ·   Wheel: zoom",
+            "LMB drag: orbit   ·   MMB drag: pan   ·   Wheel: zoom   ·   F: focus",
             egui::FontId::proportional(12.0),
             egui::Color32::from_rgb(150, 164, 183),
         );
