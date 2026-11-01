@@ -16,7 +16,7 @@ authors = ["AstraEngine Contributors"]
 rust-version = "1.85"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 all = "warn"

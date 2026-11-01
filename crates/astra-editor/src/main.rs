@@ -1,5 +1,9 @@
+mod gpu_viewport;
+
 use astra_core::EngineInfo;
-use egui::{Color32, Id, Sense, Stroke, Ui, Vec2, WidgetText};
+use egui::{Id, Sense, Ui, WidgetText};
+use std::sync::{Arc, Mutex};
+use gpu_viewport::GpuViewport;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use serde::{Deserialize, Serialize};
 
@@ -44,8 +48,8 @@ impl Default for EditorState {
             rotation: [0.0, 0.0, 0.0],
             scale: [1.0, 1.0, 1.0],
             console_lines: vec![
-                "AstraEngine Editor 0.2 initialized.".to_owned(),
-                "Viewport is a UI preview; GPU rendering is the next milestone.".to_owned(),
+                "AstraEngine Editor 0.3 initialized.".to_owned(),
+                "3D viewport uses the OpenGL backend.".to_owned(),
             ],
         }
     }
@@ -71,6 +75,10 @@ fn default_dock_state() -> DockState<EditorTab> {
 struct AstraEditor {
     dock_state: DockState<EditorTab>,
     state: EditorState,
+    gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
+    camera_yaw: f32,
+    camera_pitch: f32,
+    camera_distance: f32,
 }
 
 impl AstraEditor {
@@ -81,12 +89,30 @@ impl AstraEditor {
             .storage
             .and_then(|storage| eframe::get_value(storage, DOCK_STATE_KEY))
             .unwrap_or_else(default_dock_state);
-        let state = cc
+        let mut state: EditorState = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, EDITOR_STATE_KEY))
             .unwrap_or_default();
 
-        Self { dock_state, state }
+        let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
+            Ok(renderer) => {
+                state.console_lines.push("OpenGL viewport renderer initialized.".to_owned());
+                Some(Arc::new(Mutex::new(renderer)))
+            }
+            Err(error) => {
+                state.console_lines.push(format!("GPU viewport initialization failed: {error}"));
+                None
+            }
+        });
+
+        Self {
+            dock_state,
+            state,
+            gpu_viewport,
+            camera_yaw: 0.75,
+            camera_pitch: 0.48,
+            camera_distance: 9.0,
+        }
     }
 
     fn log(&mut self, message: impl Into<String>) {
@@ -190,6 +216,10 @@ impl eframe::App for AstraEditor {
             .show(ctx, |ui| {
                 let mut viewer = EditorTabViewer {
                     state: &mut self.state,
+                    gpu_viewport: self.gpu_viewport.clone(),
+                    camera_yaw: &mut self.camera_yaw,
+                    camera_pitch: &mut self.camera_pitch,
+                    camera_distance: &mut self.camera_distance,
                 };
                 DockArea::new(&mut self.dock_state)
                     .style(Style::from_egui(ui.style()))
@@ -205,10 +235,22 @@ impl eframe::App for AstraEditor {
     fn persist_egui_memory(&self) -> bool {
         true
     }
+
+    fn on_exit(&mut self, gl: Option<&eframe::glow::Context>) {
+        if let (Some(renderer), Some(gl)) = (&self.gpu_viewport, gl) {
+            if let Ok(renderer) = renderer.lock() {
+                renderer.destroy(gl);
+            }
+        }
+    }
 }
 
 struct EditorTabViewer<'a> {
     state: &'a mut EditorState,
+    gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
+    camera_yaw: &'a mut f32,
+    camera_pitch: &'a mut f32,
+    camera_distance: &'a mut f32,
 }
 
 impl TabViewer for EditorTabViewer<'_> {
@@ -252,54 +294,71 @@ impl EditorTabViewer<'_> {
     }
 
     fn viewport_ui(&mut self, ui: &mut Ui) {
-        let available = ui.available_size().max(Vec2::splat(80.0));
-        let (response, painter) = ui.allocate_painter(available, Sense::click_and_drag());
-        let rect = response.rect;
+        let available = ui.available_size().max(egui::Vec2::splat(80.0));
+        let (rect, response) = ui.allocate_exact_size(available, Sense::click_and_drag());
 
-        painter.rect_filled(rect, 0.0, Color32::from_rgb(29, 34, 43));
-        let grid = Color32::from_rgb(52, 61, 73);
-        let spacing = 32.0;
-        let mut x = rect.left();
-        while x < rect.right() {
-            painter.line_segment(
-                [egui::pos2(x, rect.top()), egui::pos2(x, rect.bottom())],
-                Stroke::new(1.0, grid),
-            );
-            x += spacing;
+        if response.dragged_by(egui::PointerButton::Primary) {
+            let delta = response.drag_delta();
+            *self.camera_yaw -= delta.x * 0.008;
+            *self.camera_pitch = (*self.camera_pitch + delta.y * 0.008).clamp(-1.3, 1.3);
+            ui.ctx().request_repaint();
         }
-        let mut y = rect.top();
-        while y < rect.bottom() {
-            painter.line_segment(
-                [egui::pos2(rect.left(), y), egui::pos2(rect.right(), y)],
-                Stroke::new(1.0, grid),
-            );
-            y += spacing;
+        if response.hovered() {
+            let scroll = ui.input(|input| input.raw_scroll_delta.y);
+            if scroll.abs() > 0.0 {
+                *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001))
+                    .clamp(2.5, 40.0);
+                ui.ctx().request_repaint();
+            }
         }
 
-        let center = rect.center();
-        painter.line_segment(
-            [egui::pos2(center.x - 80.0, center.y), egui::pos2(center.x + 80.0, center.y)],
-            Stroke::new(2.0, Color32::from_rgb(190, 75, 75)),
-        );
-        painter.line_segment(
-            [egui::pos2(center.x, center.y - 80.0), egui::pos2(center.x, center.y + 80.0)],
-            Stroke::new(2.0, Color32::from_rgb(80, 170, 105)),
-        );
-        painter.circle_stroke(center, 34.0, Stroke::new(2.0, Color32::from_rgb(110, 160, 220)));
+        if let Some(renderer) = &self.gpu_viewport {
+            let renderer = Arc::clone(renderer);
+            let yaw = *self.camera_yaw;
+            let pitch = *self.camera_pitch;
+            let distance = *self.camera_distance;
+            let callback = egui::PaintCallback {
+                rect,
+                callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
+                    if let Ok(renderer) = renderer.lock() {
+                        let viewport = info.viewport_in_pixels();
+                        renderer.paint(
+                            painter.gl(),
+                            viewport.width_px,
+                            viewport.height_px,
+                            yaw,
+                            pitch,
+                            distance,
+                        );
+                    }
+                })),
+            };
+            ui.painter().add(callback);
+        } else {
+            ui.painter().rect_filled(rect, 0.0, egui::Color32::from_rgb(27, 31, 39));
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "GPU renderer unavailable",
+                egui::FontId::proportional(16.0),
+                egui::Color32::LIGHT_RED,
+            );
+        }
 
+        let painter = ui.painter();
         painter.text(
             rect.left_top() + egui::vec2(14.0, 12.0),
             egui::Align2::LEFT_TOP,
-            "3D VIEWPORT PREVIEW",
+            "PERSPECTIVE · LIT 3D SCENE",
             egui::FontId::monospace(12.0),
-            Color32::from_rgb(190, 202, 218),
+            egui::Color32::from_rgb(195, 205, 220),
         );
         painter.text(
             rect.left_bottom() + egui::vec2(14.0, -12.0),
             egui::Align2::LEFT_BOTTOM,
-            "GPU renderer is not connected yet",
+            "LMB drag: orbit   ·   Wheel: zoom",
             egui::FontId::proportional(12.0),
-            Color32::from_rgb(145, 157, 174),
+            egui::Color32::from_rgb(150, 164, 183),
         );
     }
 
@@ -383,14 +442,16 @@ fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("AstraEngine Editor 0.2")
+            .with_title("AstraEngine Editor 0.3")
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([1024.0, 680.0]),
+        renderer: eframe::Renderer::Glow,
+        depth_buffer: 24,
         ..Default::default()
     };
 
     eframe::run_native(
-        "AstraEngine Editor 0.2",
+        "AstraEngine Editor 0.3",
         options,
         Box::new(|cc| {
             let mut editor = AstraEditor::new(cc);
