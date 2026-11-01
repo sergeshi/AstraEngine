@@ -3,11 +3,16 @@ name = "astra-editor"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
 astra-core = { path = "../astra-core" }
-astra-renderer = { path = "../astra-renderer" }
+astra-runtime = { path = "../astra-runtime" }
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "astra-editor"
+path = "src/main.rs"

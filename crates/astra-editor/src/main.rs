@@ -1,11 +1,13 @@
-use astra_core::{EngineConfig, ENGINE_NAME, ENGINE_VERSION};
+use astra_core::EngineInfo;
+use astra_runtime::GameRuntime;
 
 fn main() {
-    let config = EngineConfig::default();
+    let runtime = GameRuntime::default();
 
-    println!("{ENGINE_NAME} {ENGINE_VERSION}");
-    println!("Standalone editor bootstrap");
-    println!("Application: {}", config.application_name);
-    println!("Target frame rate: {} FPS", config.target_fps);
-    println!("Editor UI and GPU viewport are scheduled for Milestone 1 and 3.");
+    println!("{} {}", EngineInfo::CURRENT.name, EngineInfo::CURRENT.version);
+    println!("Target platform: {}", EngineInfo::CURRENT.target_platform);
+    println!("Editor bootstrap is running.");
+    println!("Runtime state: {:?}", runtime.state());
+    println!();
+    println!("This is the first workspace milestone, not yet the graphical editor.");
 }
