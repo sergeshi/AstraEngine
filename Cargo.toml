@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/astra-core",
+    "crates/astra-scene",
+    "crates/astra-renderer",
+    "crates/astra-runtime",
+    "crates/astra-editor",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["AstraEngine Contributors"]
+rust-version = "1.85"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
