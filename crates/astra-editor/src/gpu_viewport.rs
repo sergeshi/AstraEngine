@@ -1,7 +1,8 @@
 #![allow(unsafe_code)]
 
 use eframe::glow::{self, HasContext};
-use glam::{Mat4, Vec3};
+use astra_scene::{EntityId, PrimitiveMesh, Scene};
+use glam::{EulerRot, Mat4, Quat, Vec3};
 use std::f32::consts::FRAC_PI_4;
 
 #[repr(C)]
@@ -17,12 +18,11 @@ pub struct GpuViewport {
     vertex_buffer: glow::Buffer,
     view_projection: glow::UniformLocation,
     line_vertices: i32,
-    total_vertices: i32,
 }
 
 impl GpuViewport {
     pub fn new(gl: &glow::Context) -> Result<Self, String> {
-        let vertices = build_scene_vertices();
+        let vertices = build_grid_vertices();
         unsafe {
             let vertex_shader = compile_shader(gl, glow::VERTEX_SHADER, VERTEX_SHADER)?;
             let fragment_shader = compile_shader(gl, glow::FRAGMENT_SHADER, FRAGMENT_SHADER)?;
@@ -67,7 +67,6 @@ impl GpuViewport {
                 vertex_buffer,
                 view_projection,
                 line_vertices: build_line_vertex_count(),
-                total_vertices: vertices.len() as i32,
             })
         }
     }
@@ -80,7 +79,17 @@ impl GpuViewport {
         yaw: f32,
         pitch: f32,
         distance: f32,
+        scene: &Scene,
+        selected_entity: Option<EntityId>,
     ) {
+        let vertices = build_scene_vertices(scene, selected_entity);
+        let total_vertices = vertices.len() as i32;
+        let bytes = unsafe {
+            std::slice::from_raw_parts(
+                vertices.as_ptr().cast::<u8>(),
+                vertices.len() * std::mem::size_of::<Vertex>(),
+            )
+        };
         let aspect = (width.max(1) as f32) / (height.max(1) as f32);
         let pitch = pitch.clamp(-1.35, 1.35);
         let distance = distance.clamp(2.5, 40.0);
@@ -104,13 +113,15 @@ impl GpuViewport {
                 false,
                 &matrix.to_cols_array(),
             );
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, bytes, glow::DYNAMIC_DRAW);
             gl.bind_vertex_array(Some(self.vertex_array));
             gl.line_width(1.0);
             gl.draw_arrays(glow::LINES, 0, self.line_vertices);
             gl.draw_arrays(
                 glow::TRIANGLES,
                 self.line_vertices,
-                self.total_vertices - self.line_vertices,
+                total_vertices - self.line_vertices,
             );
             gl.bind_vertex_array(None);
             gl.use_program(None);
@@ -145,7 +156,7 @@ unsafe fn compile_shader(
     Ok(shader)
 }
 
-fn build_scene_vertices() -> Vec<Vertex> {
+fn build_grid_vertices() -> Vec<Vertex> {
     let mut vertices = Vec::new();
     let minor = [0.22, 0.25, 0.30];
     let major = [0.31, 0.35, 0.41];
@@ -161,8 +172,12 @@ fn build_scene_vertices() -> Vec<Vertex> {
     push_line(&mut vertices, [-20.0, 0.002, 0.0], [20.0, 0.002, 0.0], [0.85, 0.24, 0.22]);
     push_line(&mut vertices, [0.0, -20.0, 0.0], [0.0, 20.0, 0.0], [0.25, 0.82, 0.42]);
     push_line(&mut vertices, [0.0, 0.002, -20.0], [0.0, 0.002, 20.0], [0.25, 0.48, 0.95]);
+    vertices
+}
 
-    let faces: [([f32; 3], [[f32; 3]; 4]); 6] = [
+fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec<Vertex> {
+    let mut vertices = build_grid_vertices();
+    let cube_faces: [([f32; 3], [[f32; 3]; 4]); 6] = [
         ([0.78, 0.31, 0.27], [[-1.0,-1.0, 1.0],[1.0,-1.0, 1.0],[1.0,1.0,1.0],[-1.0,1.0,1.0]]),
         ([0.30, 0.66, 0.39], [[1.0,-1.0,-1.0],[-1.0,-1.0,-1.0],[-1.0,1.0,-1.0],[1.0,1.0,-1.0]]),
         ([0.28, 0.48, 0.82], [[-1.0,-1.0,-1.0],[-1.0,-1.0,1.0],[-1.0,1.0,1.0],[-1.0,1.0,-1.0]]),
@@ -171,9 +186,27 @@ fn build_scene_vertices() -> Vec<Vertex> {
         ([0.30, 0.68, 0.73], [[-1.0,-1.0,-1.0],[1.0,-1.0,-1.0],[1.0,-1.0,1.0],[-1.0,-1.0,1.0]]),
     ];
 
-    for (color, p) in faces {
-        for index in [0, 1, 2, 0, 2, 3] {
-            vertices.push(Vertex { position: p[index], color });
+    for entity in scene.iter() {
+        if entity.mesh != Some(PrimitiveMesh::Cube) {
+            continue;
+        }
+        let transform = Mat4::from_scale_rotation_translation(
+            Vec3::from_array(entity.transform.scale),
+            Quat::from_euler(
+                EulerRot::XYZ,
+                entity.transform.rotation[0],
+                entity.transform.rotation[1],
+                entity.transform.rotation[2],
+            ),
+            Vec3::from_array(entity.transform.translation),
+        );
+        let selected = selected_entity == Some(entity.id);
+        for (face_color, corners) in cube_faces {
+            let color = if selected { [0.98, 0.78, 0.28] } else { face_color };
+            for index in [0, 1, 2, 0, 2, 3] {
+                let position = transform.transform_point3(Vec3::from_array(corners[index]));
+                vertices.push(Vertex { position: position.to_array(), color });
+            }
         }
     }
     vertices
