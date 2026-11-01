@@ -1,5 +1,4 @@
 use astra_core::EngineInfo;
-use astra_runtime::GameRuntime;
 use egui::{Color32, Id, Sense, Stroke, Ui, Vec2, WidgetText};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use serde::{Deserialize, Serialize};
@@ -188,7 +187,6 @@ impl eframe::App for AstraEditor {
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::NONE)
             .show(ctx, |ui| {
                 let mut viewer = EditorTabViewer {
                     state: &mut self.state,
@@ -394,7 +392,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "AstraEngine Editor 0.2",
         options,
-        Box::new(|cc| Ok(Box::new(AstraEditor::new(cc)))),
+        Box::new(|cc| {\n            let mut editor = AstraEditor::new(cc);\n            let runtime = astra_runtime::GameRuntime::default();\n            editor.log(format!("Runtime state: {:?}", runtime.state()));\n            Ok(Box::new(editor))\n        }),
     )
 }
 
