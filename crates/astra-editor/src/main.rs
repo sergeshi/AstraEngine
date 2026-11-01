@@ -505,11 +505,7 @@ mod tests {
     #[test]
     fn default_layout_contains_all_five_editor_panels() {
         let dock = default_dock_state();
-        let tabs: Vec<EditorTab> = dock
-            .main_surface()
-            .iter_all_tabs()
-            .copied()
-            .collect();
+        let tabs: Vec<EditorTab> = dock.iter_all_tabs().copied().collect();
 
         for expected in [
             EditorTab::Hierarchy,
