@@ -3,7 +3,7 @@
 use eframe::glow::{self, HasContext};
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use glam::{EulerRot, Mat4, Quat, Vec3};
-use std::f32::consts::FRAC_PI_4;
+use crate::viewport_camera;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -79,6 +79,7 @@ impl GpuViewport {
         yaw: f32,
         pitch: f32,
         distance: f32,
+        target: [f32; 3],
         scene: &Scene,
         selected_entity: Option<EntityId>,
     ) {
@@ -90,17 +91,14 @@ impl GpuViewport {
                 vertices.len() * std::mem::size_of::<Vertex>(),
             )
         };
-        let aspect = (width.max(1) as f32) / (height.max(1) as f32);
-        let pitch = pitch.clamp(-1.35, 1.35);
-        let distance = distance.clamp(2.5, 40.0);
-        let eye = Vec3::new(
-            distance * pitch.cos() * yaw.sin(),
-            distance * pitch.sin(),
-            distance * pitch.cos() * yaw.cos(),
+        let matrix = viewport_camera::view_projection(
+            width,
+            height,
+            yaw,
+            pitch,
+            distance,
+            Vec3::from_array(target),
         );
-        let view = Mat4::look_at_rh(eye, Vec3::ZERO, Vec3::Y);
-        let projection = Mat4::perspective_rh_gl(FRAC_PI_4, aspect, 0.05, 200.0);
-        let matrix = projection * view;
 
         unsafe {
             gl.enable(glow::DEPTH_TEST);
