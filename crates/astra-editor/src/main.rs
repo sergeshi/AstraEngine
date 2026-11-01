@@ -1,6 +1,7 @@
 mod gpu_viewport;
 
 use astra_core::EngineInfo;
+use astra_scene::{EntityId, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
 use std::sync::{Arc, Mutex};
 use gpu_viewport::GpuViewport;
@@ -33,23 +34,24 @@ impl EditorTab {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct EditorState {
-    selected_entity: String,
-    translation: [f32; 3],
-    rotation: [f32; 3],
-    scale: [f32; 3],
+    scene: Scene,
+    selected_entity: Option<EntityId>,
     console_lines: Vec<String>,
 }
 
 impl Default for EditorState {
     fn default() -> Self {
+        let mut scene = Scene::new();
+        scene.spawn("Camera");
+        scene.spawn("Directional Light");
+        let cube = scene.spawn("Cube");
+
         Self {
-            selected_entity: "Camera".to_owned(),
-            translation: [0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0],
-            scale: [1.0, 1.0, 1.0],
+            scene,
+            selected_entity: Some(cube),
             console_lines: vec![
-                "AstraEngine Editor 0.3 initialized.".to_owned(),
-                "3D viewport uses the OpenGL backend.".to_owned(),
+                "AstraEngine Editor 0.4 initialized.".to_owned(),
+                "Hierarchy and Inspector use the shared scene model.".to_owned(),
             ],
         }
     }
@@ -205,7 +207,13 @@ impl eframe::App for AstraEditor {
                 ui.horizontal(|ui| {
                     ui.small("Ready");
                     ui.separator();
-                    ui.small(format!("Selected: {}", self.state.selected_entity));
+                    ui.small(format!(
+                        "Selected: {}",
+                        self.state.selected_entity
+                            .and_then(|id| self.state.scene.get(id))
+                            .map(|entity| entity.name.as_str())
+                            .unwrap_or("None")
+                    ));
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.small("AstraEngine");
                     });
@@ -279,17 +287,34 @@ impl EditorTabViewer<'_> {
     fn hierarchy_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.strong("World");
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.small("＋");
-            });
+            if ui.button("＋ Add Cube").clicked() {
+                let id = self.state.scene.spawn("Cube");
+                self.state.selected_entity = Some(id);
+                self.state.console_lines.push(format!("Created Cube ({})", id.0));
+            }
+            if ui.button("− Delete").clicked() {
+                if let Some(id) = self.state.selected_entity {
+                    if self.state.scene.remove(id).is_some() {
+                        self.state.selected_entity = self.state.scene.iter().next().map(|entity| entity.id);
+                        self.state.console_lines.push(format!("Deleted entity ({})", id.0));
+                    }
+                }
+            }
         });
         ui.separator();
 
-        for entity in ["Camera", "Directional Light", "Cube"] {
-            let selected = self.state.selected_entity == entity;
-            if ui.selectable_label(selected, format!("◇  {entity}")).clicked() {
-                self.state.selected_entity = entity.to_owned();
+        let entities: Vec<(EntityId, String)> = self.state.scene
+            .iter()
+            .map(|entity| (entity.id, entity.name.clone()))
+            .collect();
+        for (id, name) in entities {
+            let selected = self.state.selected_entity == Some(id);
+            if ui.selectable_label(selected, format!("◇  {name}")).clicked() {
+                self.state.selected_entity = Some(id);
             }
+        }
+        if self.state.scene.is_empty() {
+            ui.weak("Scene is empty. Add an object to begin.");
         }
     }
 
@@ -365,22 +390,33 @@ impl EditorTabViewer<'_> {
     fn inspector_ui(&mut self, ui: &mut Ui) {
         ui.heading("Details");
         ui.separator();
-        ui.label(format!("Selected Object: {}", self.state.selected_entity));
+
+        let Some(selected) = self.state.selected_entity else {
+            ui.weak("Select an entity in the Hierarchy.");
+            return;
+        };
+        let Some(entity) = self.state.scene.get_mut(selected) else {
+            ui.weak("Selected entity no longer exists.");
+            return;
+        };
+
+        ui.label(format!("Selected Object: {}", entity.name));
+        ui.small(format!("Entity ID: {}", entity.id.0));
         ui.add_space(8.0);
 
         egui::CollapsingHeader::new("Transform")
             .default_open(true)
             .show(ui, |ui| {
-                vector3_editor(ui, "Location", &mut self.state.translation);
-                vector3_editor(ui, "Rotation", &mut self.state.rotation);
-                vector3_editor(ui, "Scale", &mut self.state.scale);
+                vector3_editor(ui, "Location", &mut entity.transform.translation);
+                vector3_editor(ui, "Rotation", &mut entity.transform.rotation);
+                vector3_editor(ui, "Scale", &mut entity.transform.scale);
             });
 
         egui::CollapsingHeader::new("Components")
             .default_open(true)
             .show(ui, |ui| {
                 ui.label("Transform");
-                ui.label("No other components yet.");
+                ui.weak("Additional components are not implemented yet.");
             });
     }
 
@@ -442,7 +478,7 @@ fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("AstraEngine Editor 0.3")
+            .with_title("AstraEngine Editor 0.4")
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([1024.0, 680.0]),
         renderer: eframe::Renderer::Glow,
@@ -451,7 +487,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "AstraEngine Editor 0.3",
+        "AstraEngine Editor 0.4",
         options,
         Box::new(|cc| {
             let mut editor = AstraEditor::new(cc);
@@ -488,6 +524,9 @@ mod tests {
 
     #[test]
     fn editor_state_has_a_default_selection() {
-        assert_eq!(EditorState::default().selected_entity, "Camera");
+        let state = EditorState::default();
+        let selected = state.selected_entity.expect("default entity is selected");
+        assert_eq!(state.scene.get(selected).expect("selected entity exists").name, "Cube");
+        assert_eq!(state.scene.len(), 3);
     }
 }
