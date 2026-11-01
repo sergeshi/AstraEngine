@@ -1,0 +1,13 @@
+[package]
+name = "astra-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+astra-core = { path = "../astra-core" }
+astra-scene = { path = "../astra-scene" }
+
+[lints]
+workspace = true
