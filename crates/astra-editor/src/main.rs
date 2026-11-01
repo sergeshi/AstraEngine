@@ -346,7 +346,72 @@ impl EditorTabViewer<'_> {
         let available = ui.available_size().max(egui::Vec2::splat(80.0));
         let (rect, response) = ui.allocate_exact_size(available, Sense::click_and_drag());
 
+        if response.hovered() {
+            ui.input(|input| {
+                if input.key_pressed(egui::Key::W) { *self.gizmo_mode = viewport_gizmo::Mode::Move; *self.gizmo_drag = None; }
+                if input.key_pressed(egui::Key::E) { *self.gizmo_mode = viewport_gizmo::Mode::Rotate; *self.gizmo_drag = None; }
+                if input.key_pressed(egui::Key::R) { *self.gizmo_mode = viewport_gizmo::Mode::Scale; *self.gizmo_drag = None; }
+            });
+        }
+
+        let selected_position = self.state.selected_entity.and_then(|id| self.state.scene.get(id)).map(|e| e.transform.translation);
+        let camera_matrix = viewport_gizmo::matrix(rect.width(), rect.height(), *self.camera_yaw, *self.camera_pitch, *self.camera_distance, Vec3::from_array(*self.camera_target));
+        let gizmo_length = (*self.camera_distance * 0.19).clamp(0.8, 2.8);
+
+        if response.drag_started_by(egui::PointerButton::Primary) {
+            if let (Some(pointer), Some(id), Some(position)) = (response.interact_pointer_pos(), self.state.selected_entity, selected_position) {
+                if let Some(axis) = viewport_gizmo::hit_test(*self.gizmo_mode, camera_matrix, rect, Vec3::from_array(position), gizmo_length, pointer) {
+                    let initial = self.state.scene.get(id).map(|e| match *self.gizmo_mode {
+                        viewport_gizmo::Mode::Move => e.transform.translation,
+                        viewport_gizmo::Mode::Rotate => e.transform.rotation,
+                        viewport_gizmo::Mode::Scale => e.transform.scale,
+                    }).unwrap_or([0.0; 3]);
+                    *self.gizmo_drag = Some(GizmoDrag { entity: id, axis, start: pointer, initial });
+                } else { *self.gizmo_drag = None; }
+            }
+        }
+
         if response.dragged_by(egui::PointerButton::Primary) {
+            if let (Some(drag), Some(pointer)) = (*self.gizmo_drag, response.interact_pointer_pos()) {
+                let delta = pointer - drag.start;
+                if let Some(entity) = self.state.scene.get_mut(drag.entity) {
+                    let index = drag.axis.index();
+                    match *self.gizmo_mode {
+                        viewport_gizmo::Mode::Move => {
+                            let axis = match drag.axis { viewport_gizmo::Axis::X => Vec3::X, viewport_gizmo::Axis::Y => Vec3::Y, viewport_gizmo::Axis::Z => Vec3::Z };
+                            let origin = Vec3::from_array(drag.initial);
+                            if let (Some(a), Some(b)) = (
+                                viewport_gizmo::project(camera_matrix, rect, origin),
+                                viewport_gizmo::project(camera_matrix, rect, origin + axis * gizmo_length),
+                            ) {
+                                let screen_axis = b - a;
+                                let pixels_per_unit = screen_axis.length() / gizmo_length.max(0.001);
+                                if pixels_per_unit > 0.01 {
+                                    let amount = delta.dot(screen_axis.normalized()) / pixels_per_unit;
+                                    let mut value = drag.initial;
+                                    value[index] += amount;
+                                    entity.transform.translation = value;
+                                }
+                            }
+                        }
+                        viewport_gizmo::Mode::Rotate => {
+                            let mut value = drag.initial;
+                            value[index] += (delta.x - delta.y) * 0.01;
+                            entity.transform.rotation = value;
+                        }
+                        viewport_gizmo::Mode::Scale => {
+                            let mut value = drag.initial;
+                            value[index] = (drag.initial[index] * (1.0 + (delta.x - delta.y) * 0.01)).max(0.01);
+                            entity.transform.scale = value;
+                        }
+                    }
+                }
+                ui.ctx().request_repaint();
+            }
+        }
+        if response.drag_stopped_by(egui::PointerButton::Primary) { *self.gizmo_drag = None; }
+
+        if response.dragged_by(egui::PointerButton::Primary) && self.gizmo_drag.is_none() {
             let delta = ui.input(|input| input.pointer.delta());
             *self.camera_yaw -= delta.x * 0.008;
             *self.camera_pitch = (*self.camera_pitch + delta.y * 0.008).clamp(-1.3, 1.3);
@@ -354,119 +419,44 @@ impl EditorTabViewer<'_> {
         }
         if response.dragged_by(egui::PointerButton::Middle) {
             let delta = ui.input(|input| input.pointer.delta());
-            let target = viewport_camera::pan_target(
-                Vec3::from_array(*self.camera_target),
-                *self.camera_yaw,
-                *self.camera_pitch,
-                *self.camera_distance,
-                glam::Vec2::new(delta.x, delta.y),
-                rect.height(),
-            );
-            *self.camera_target = target.to_array();
+            *self.camera_target = viewport_camera::pan_target(Vec3::from_array(*self.camera_target), *self.camera_yaw, *self.camera_pitch, *self.camera_distance, glam::Vec2::new(delta.x, delta.y), rect.height()).to_array();
             ui.ctx().request_repaint();
         }
         if response.hovered() {
-            let (scroll, focus_pressed) = ui.input(|input| {
-                (input.raw_scroll_delta.y, input.key_pressed(egui::Key::F))
-            });
-            if scroll.abs() > 0.0 {
-                *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001))
-                    .clamp(2.5, 80.0);
-                ui.ctx().request_repaint();
-            }
-            if focus_pressed {
-                if let Some(position) = self.state.selected_entity
-                    .and_then(|id| self.state.scene.get(id))
-                    .map(|entity| entity.transform.translation)
-                {
-                    *self.camera_target = position;
-                    self.state.console_lines.push("Viewport camera focused on selected entity.".to_owned());
-                    ui.ctx().request_repaint();
-                }
-            }
+            let (scroll, focus_pressed) = ui.input(|input| (input.raw_scroll_delta.y, input.key_pressed(egui::Key::F)));
+            if scroll.abs() > 0.0 { *self.camera_distance = (*self.camera_distance * (1.0 - scroll * 0.001)).clamp(2.5, 80.0); ui.ctx().request_repaint(); }
+            if focus_pressed { if let Some(position) = selected_position { *self.camera_target = position; ui.ctx().request_repaint(); } }
         }
 
-        if response.clicked_by(egui::PointerButton::Primary) {
+        if response.clicked_by(egui::PointerButton::Primary) && self.gizmo_drag.is_none() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
-                let picked = pick_entity(
-                    &self.state.scene,
-                    pointer_pos,
-                    rect,
-                    *self.camera_yaw,
-                    *self.camera_pitch,
-                    *self.camera_distance,
-                    *self.camera_target,
-                );
-                if picked != self.state.selected_entity {
-                    self.state.selected_entity = picked;
-                    if let Some(id) = picked {
-                        if let Some(entity) = self.state.scene.get(id) {
-                            self.state.console_lines.push(format!(
-                                "Selected {} ({}) from Viewport",
-                                entity.name, id.0
-                            ));
-                        }
-                    } else {
-                        self.state.console_lines.push("Viewport selection cleared.".to_owned());
-                    }
-                }
+                self.state.selected_entity = pick_entity(&self.state.scene, pointer_pos, rect, *self.camera_yaw, *self.camera_pitch, *self.camera_distance, *self.camera_target);
             }
         }
 
         if let Some(renderer) = &self.gpu_viewport {
             let renderer = Arc::clone(renderer);
-            let yaw = *self.camera_yaw;
-            let pitch = *self.camera_pitch;
-            let distance = *self.camera_distance;
-            let target = *self.camera_target;
-            let scene = self.state.scene.clone();
-            let selected_entity = self.state.selected_entity;
-            let callback = egui::PaintCallback {
-                rect,
-                callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
-                    if let Ok(renderer) = renderer.lock() {
-                        let viewport = info.viewport_in_pixels();
-                        renderer.paint(
-                            painter.gl(),
-                            viewport.width_px,
-                            viewport.height_px,
-                            yaw,
-                            pitch,
-                            distance,
-                            target,
-                            &scene,
-                            selected_entity,
-                        );
-                    }
-                })),
-            };
-            ui.painter().add(callback);
+            let yaw = *self.camera_yaw; let pitch = *self.camera_pitch; let distance = *self.camera_distance;
+            let target = *self.camera_target; let scene = self.state.scene.clone(); let selected_entity = self.state.selected_entity;
+            ui.painter().add(egui::PaintCallback { rect, callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
+                if let Ok(renderer) = renderer.lock() {
+                    let viewport = info.viewport_in_pixels();
+                    renderer.paint(painter.gl(), viewport.width_px, viewport.height_px, yaw, pitch, distance, target, &scene, selected_entity);
+                }
+            }))});
         } else {
             ui.painter().rect_filled(rect, 0.0, egui::Color32::from_rgb(27, 31, 39));
-            ui.painter().text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                "GPU renderer unavailable",
-                egui::FontId::proportional(16.0),
-                egui::Color32::LIGHT_RED,
-            );
         }
 
+        if let Some(position) = selected_position {
+            viewport_gizmo::draw(ui.painter(), *self.gizmo_mode, camera_matrix, rect, Vec3::from_array(position), gizmo_length);
+        }
         let painter = ui.painter();
-        painter.text(
-            rect.left_top() + egui::vec2(14.0, 12.0),
-            egui::Align2::LEFT_TOP,
-            "PERSPECTIVE · LIT 3D SCENE",
-            egui::FontId::monospace(12.0),
-            egui::Color32::from_rgb(195, 205, 220),
-        );
-        painter.text(
-            rect.left_bottom() + egui::vec2(14.0, -12.0),
-            egui::Align2::LEFT_BOTTOM,
-            "LMB drag: orbit   ·   MMB drag: pan   ·   Wheel: zoom   ·   F: focus",
-            egui::FontId::proportional(12.0),
-            egui::Color32::from_rgb(150, 164, 183),
-        );
+        painter.text(rect.left_top() + egui::vec2(14.0, 12.0), egui::Align2::LEFT_TOP,
+            format!("PERSPECTIVE · {:?} GIZMO", self.gizmo_mode).to_uppercase(), egui::FontId::monospace(12.0), egui::Color32::from_rgb(195, 205, 220));
+        painter.text(rect.left_bottom() + egui::vec2(14.0, -12.0), egui::Align2::LEFT_BOTTOM,
+            "LMB drag: orbit / gizmo   ·   MMB: pan   ·   Wheel: zoom   ·   F: focus   ·   W/E/R: tools",
+            egui::FontId::proportional(12.0), egui::Color32::from_rgb(150, 164, 183));
     }
 
     fn inspector_ui(&mut self, ui: &mut Ui) {
