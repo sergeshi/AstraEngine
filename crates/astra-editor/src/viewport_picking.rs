@@ -1,7 +1,7 @@
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use egui::{Pos2, Rect};
 use glam::{EulerRot, Mat4, Quat, Vec3, Vec4};
-use std::f32::consts::FRAC_PI_4;
+use crate::viewport_camera;
 
 /// Returns the closest cube intersected by the pointer ray in the viewport.
 pub fn pick_entity(
@@ -11,27 +11,21 @@ pub fn pick_entity(
     yaw: f32,
     pitch: f32,
     distance: f32,
+    target: [f32; 3],
 ) -> Option<EntityId> {
     if viewport.width() <= 0.0 || viewport.height() <= 0.0 || !viewport.contains(pointer) {
         return None;
     }
 
-    let yaw = yaw;
-    let pitch = pitch.clamp(-1.35, 1.35);
-    let distance = distance.clamp(2.5, 40.0);
-    let eye = Vec3::new(
-        distance * pitch.cos() * yaw.sin(),
-        distance * pitch.sin(),
-        distance * pitch.cos() * yaw.cos(),
+    let view_projection = viewport_camera::view_projection(
+        viewport.width() as i32,
+        viewport.height() as i32,
+        yaw,
+        pitch,
+        distance,
+        Vec3::from_array(target),
     );
-    let view = Mat4::look_at_rh(eye, Vec3::ZERO, Vec3::Y);
-    let projection = Mat4::perspective_rh_gl(
-        FRAC_PI_4,
-        viewport.width() / viewport.height(),
-        0.05,
-        200.0,
-    );
-    let inverse_view_projection = (projection * view).inverse();
+    let inverse_view_projection = view_projection.inverse();
 
     let ndc_x = ((pointer.x - viewport.left()) / viewport.width()) * 2.0 - 1.0;
     let ndc_y = 1.0 - ((pointer.y - viewport.top()) / viewport.height()) * 2.0;
@@ -134,7 +128,7 @@ mod tests {
         let cube = scene.spawn_cube("Cube");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0);
+        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
 
         assert_eq!(picked, Some(cube));
     }
@@ -147,9 +141,29 @@ mod tests {
         let nearer = scene.spawn_cube("Nearer");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0);
+        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
 
         assert_eq!(picked, Some(nearer));
+    }
+
+    #[test]
+    fn picking_works_after_camera_target_moves_away_from_origin() {
+        let mut scene = Scene::new();
+        let cube = scene.spawn_cube("Offset Cube");
+        scene.get_mut(cube).unwrap().transform.translation = [4.0, 0.0, 0.0];
+        let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
+
+        let picked = pick_entity(
+            &scene,
+            center_of(viewport),
+            viewport,
+            0.0,
+            0.0,
+            9.0,
+            [4.0, 0.0, 0.0],
+        );
+
+        assert_eq!(picked, Some(cube));
     }
 
     #[test]
@@ -158,7 +172,7 @@ mod tests {
         scene.spawn("Camera");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0);
+        let picked = pick_entity(&scene, center_of(viewport), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
 
         assert_eq!(picked, None);
     }
@@ -169,7 +183,7 @@ mod tests {
         scene.spawn_cube("Cube");
         let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
 
-        let picked = pick_entity(&scene, Pos2::new(120.0, 50.0), viewport, 0.0, 0.0, 9.0);
+        let picked = pick_entity(&scene, Pos2::new(120.0, 50.0), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
 
         assert_eq!(picked, None);
     }
