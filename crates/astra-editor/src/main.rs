@@ -48,8 +48,8 @@ impl Default for EditorState {
             rotation: [0.0, 0.0, 0.0],
             scale: [1.0, 1.0, 1.0],
             console_lines: vec![
-                "AstraEngine Editor 0.2 initialized.".to_owned(),
-                "Viewport is a UI preview; GPU rendering is the next milestone.".to_owned(),
+                "AstraEngine Editor 0.3 initialized.".to_owned(),
+                "3D viewport uses the OpenGL backend.".to_owned(),
             ],
         }
     }
