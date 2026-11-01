@@ -392,7 +392,12 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "AstraEngine Editor 0.2",
         options,
-        Box::new(|cc| {\n            let mut editor = AstraEditor::new(cc);\n            let runtime = astra_runtime::GameRuntime::default();\n            editor.log(format!("Runtime state: {:?}", runtime.state()));\n            Ok(Box::new(editor))\n        }),
+        Box::new(|cc| {
+            let mut editor = AstraEditor::new(cc);
+            let runtime = astra_runtime::GameRuntime::default();
+            editor.log(format!("Runtime state: {:?}", runtime.state()));
+            Ok(Box::new(editor))
+        }),
     )
 }
 
