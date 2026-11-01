@@ -189,7 +189,7 @@ impl AstraEditor {
                 ui.separator();
                 ui.label("Scene: Untitled");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label("Windows · Editor 0.2");
+                    ui.label("Windows · Editor 0.4");
                 });
             });
         });
