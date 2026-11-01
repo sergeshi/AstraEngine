@@ -26,6 +26,12 @@ impl Default for Transform {
     }
 }
 
+/// Built-in primitive geometry that can be rendered by the editor viewport.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PrimitiveMesh {
+    Cube,
+}
+
 /// Minimal scene graph node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entity {
@@ -33,6 +39,7 @@ pub struct Entity {
     pub name: String,
     pub parent: Option<EntityId>,
     pub transform: Transform,
+    pub mesh: Option<PrimitiveMesh>,
 }
 
 /// Serializable in-memory scene model with deterministic entity iteration.
@@ -57,8 +64,17 @@ impl Scene {
                 name: name.into(),
                 parent: None,
                 transform: Transform::default(),
+                mesh: None,
             },
         );
+        id
+    }
+
+    pub fn spawn_cube(&mut self, name: impl Into<String>) -> EntityId {
+        let id = self.spawn(name);
+        if let Some(entity) = self.get_mut(id) {
+            entity.mesh = Some(PrimitiveMesh::Cube);
+        }
         id
     }
 
