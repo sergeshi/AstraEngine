@@ -89,7 +89,7 @@ impl AstraEditor {
             .storage
             .and_then(|storage| eframe::get_value(storage, DOCK_STATE_KEY))
             .unwrap_or_else(default_dock_state);
-        let state = cc
+        let mut state = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, EDITOR_STATE_KEY))
             .unwrap_or_default();
@@ -442,15 +442,16 @@ fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("AstraEngine Editor 0.2")
+            .with_title("AstraEngine Editor 0.3")
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([1024.0, 680.0]),
         renderer: eframe::Renderer::Glow,
+        depth_buffer: 24,
         ..Default::default()
     };
 
     eframe::run_native(
-        "AstraEngine Editor 0.2",
+        "AstraEngine Editor 0.3",
         options,
         Box::new(|cc| {
             let mut editor = AstraEditor::new(cc);
