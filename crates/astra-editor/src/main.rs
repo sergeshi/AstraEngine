@@ -89,7 +89,7 @@ impl AstraEditor {
             .storage
             .and_then(|storage| eframe::get_value(storage, DOCK_STATE_KEY))
             .unwrap_or_else(default_dock_state);
-        let mut state = cc
+        let mut state: EditorState = cc
             .storage
             .and_then(|storage| eframe::get_value(storage, EDITOR_STATE_KEY))
             .unwrap_or_default();
