@@ -39,6 +39,7 @@ pub struct Entity {
     pub name: String,
     pub parent: Option<EntityId>,
     pub transform: Transform,
+    #[serde(default)]
     pub mesh: Option<PrimitiveMesh>,
 }
 
@@ -125,6 +126,15 @@ mod tests {
             scene.get(second).expect("entity exists").transform,
             Transform::default()
         );
+    }
+
+    #[test]
+    fn spawned_cube_has_renderable_primitive_mesh() {
+        let mut scene = Scene::new();
+        let cube = scene.spawn_cube("Cube");
+        assert_eq!(scene.get(cube).expect("cube exists").mesh, Some(PrimitiveMesh::Cube));
+        let empty = scene.spawn("Empty");
+        assert_eq!(scene.get(empty).expect("empty entity exists").mesh, None);
     }
 
     #[test]
