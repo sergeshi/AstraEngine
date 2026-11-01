@@ -1,17 +1,17 @@
 //! Scene data model. Rendering and editor UI are intentionally kept out of this crate.
 
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Stable identifier for an entity within a scene.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EntityId(pub u64);
 
 /// Local-space transform represented without a graphics-backend dependency.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Transform {
     pub translation: [f32; 3],
-    /// Euler angles in radians. A quaternion representation will be introduced
-    /// with the math layer before animation and advanced transform editing.
+    /// Euler angles in radians.
     pub rotation: [f32; 3],
     pub scale: [f32; 3],
 }
@@ -27,7 +27,7 @@ impl Default for Transform {
 }
 
 /// Minimal scene graph node.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub name: String,
@@ -35,8 +35,8 @@ pub struct Entity {
     pub transform: Transform,
 }
 
-/// In-memory scene model with deterministic entity iteration.
-#[derive(Debug, Clone, Default)]
+/// Serializable in-memory scene model with deterministic entity iteration.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
     next_id: u64,
     entities: BTreeMap<EntityId, Entity>,
@@ -48,7 +48,7 @@ impl Scene {
     }
 
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
-        self.next_id += 1;
+        self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
         self.entities.insert(
             id,
@@ -121,5 +121,18 @@ mod tests {
         scene.remove(parent);
 
         assert_eq!(scene.get(child).expect("child remains").parent, None);
+    }
+
+    #[test]
+    fn scene_round_trip_preserves_entities_and_next_identifier() {
+        let mut scene = Scene::new();
+        let cube = scene.spawn("Cube");
+        scene.get_mut(cube).expect("cube exists").transform.translation = [1.0, 2.0, 3.0];
+
+        let encoded = serde_json::to_string(&scene).expect("scene serializes");
+        let mut decoded: Scene = serde_json::from_str(&encoded).expect("scene deserializes");
+        assert_eq!(decoded, scene);
+        let next = decoded.spawn("Sphere");
+        assert!(next.0 > cube.0);
     }
 }
