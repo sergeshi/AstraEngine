@@ -45,18 +45,16 @@ Lower-level crates must not depend on the editor.
 
 ## 4. Planned technology choices
 
-These are proposed defaults and will be validated with small Windows prototypes before being locked in:
-
-| Area | Candidate | Reason |
+| Area | Technology | Role |
 |---|---|---|
-| Desktop window | `winit` | Native cross-platform window/event handling; Windows first |
-| Editor UI | `egui` + `egui_dock` | Rust-native UI and dockable panels |
-| GPU abstraction | `wgpu` | Rust API over modern graphics backends, including Direct3D 12 and Vulkan |
-| Math | `glam` | Compact vector, matrix and transform types |
+| Native desktop window and event loop | `winit` (through `eframe`) | Windows application window and input events |
+| Editor UI | `egui` / `eframe` | Rust-native immediate-mode editor interface |
+| Docking | `egui_dock` | Resizable, movable and detachable editor panels |
+| GPU abstraction | `wgpu` | Future 3D rendering backend; not yet connected to the editor viewport |
+| Math | `glam` | Vector, matrix and transform types |
 | Scene/ECS | Custom scene model first; evaluate `bevy_ecs` when gameplay systems arrive | Keep early scene semantics explicit |
-| Physics | `rapier3d` | Rust physics candidate; integrate after scene/runtime contracts stabilize |
-| 3D asset interchange | glTF 2.0 | Practical interchange for meshes, materials, skins and animation |
-| Audio | Evaluate ` kira ` or another maintained Rust audio layer | Keep audio behind a service interface |
+| Physics | `rapier3d` | Physics candidate; integrate after scene/runtime contracts stabilize |
+| 3D asset interchange | glTF 2.0 | Mesh, material, skin and animation interchange |
 
 No Godot or Blender source code is required for this architecture. Godot can be studied as a reference and selected compatible libraries may be integrated after license and technical review. Blender is an external content-creation tool; glTF is the initial interchange path. Blender is GPL-licensed, so copying its source into this project is not part of the plan.
 
@@ -82,20 +80,21 @@ The runtime owns application lifecycle, world activation, input, time-step polic
 
 The renderer is a separate subsystem behind a backend boundary. The first real graphics milestone will create a window surface, select a supported adapter, configure a swapchain/surface and render a clear color. Subsequent milestones add a camera, depth buffer, grid, mesh buffers, materials, lighting and editor selection overlays.
 
-The initial backend candidate is wgpu. Backend choice and required Windows graphics features will be validated on the target machine.
+The initial backend candidate is `wgpu`. Backend choice and required Windows graphics features will be validated on the target machine.
 
-## 7. Editor layout target
+## 7. Editor layout and current shell
 
-The first editor layout is planned around familiar professional workflows:
+Editor 0.2 uses `eframe` for the native Windows application and `egui_dock` for movable, resizable and detachable panels. The initial workspace contains:
 
-- central 3D viewport;
-- World Outliner / scene hierarchy;
-- Details / Inspector;
-- Content Browser;
-- Output / Console;
-- top toolbar for project, save, play and build actions.
+- Hierarchy: sample scene objects and current selection.
+- Viewport: a 2D grid/axis placeholder, not yet a 3D GPU viewport.
+- Inspector: editable prototype transform fields.
+- Content Browser: placeholder asset categories, not yet connected to disk.
+- Console: in-editor log output.
 
-Panels must be dockable/resizable. The editor will use a command-based undo/redo model so UI actions do not mutate serialized scene data unpredictably.
+The menu bar includes File/Edit/Window/Help, and the toolbar exposes prototype New/Save/Play/Stop commands. Commands that depend on project serialization or runtime launch are explicitly marked as not implemented. Dock layout and basic editor state are persisted through eframe storage.
+
+The panels are a UI shell only. Scene entities, transforms, asset indexing, undo/redo, project files and GPU rendering will be connected in later milestones.
 
 ## 8. Serialization and compatibility
 
@@ -108,7 +107,3 @@ Persistent formats must carry explicit schema versions. Loading should distingui
 - Windows CI for formatting, linting and workspace tests.
 - Graphics smoke tests on real hardware when the renderer is introduced.
 - Manual acceptance checks for editor interaction, input and asset workflows.
-
-## 10. Current implementation status
-
-The first repository milestone creates the Rust workspace and minimal crate APIs. It does not yet implement a window, GPU renderer, editor panels, asset browser, physics or gameplay scripting. Those are tracked in the roadmap.

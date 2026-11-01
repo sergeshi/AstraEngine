@@ -1,13 +1,432 @@
 use astra_core::EngineInfo;
-use astra_runtime::GameRuntime;
+use egui::{Color32, Id, Sense, Stroke, Ui, Vec2, WidgetText};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
+use serde::{Deserialize, Serialize};
 
-fn main() {
-    let runtime = GameRuntime::default();
+const DOCK_STATE_KEY: &str = "astra_editor_dock_state";
+const EDITOR_STATE_KEY: &str = "astra_editor_state";
 
-    println!("{} {}", EngineInfo::CURRENT.name, EngineInfo::CURRENT.version);
-    println!("Target platform: {}", EngineInfo::CURRENT.target_platform);
-    println!("Editor bootstrap is running.");
-    println!("Runtime state: {:?}", runtime.state());
-    println!();
-    println!("This is the first workspace milestone, not yet the graphical editor.");
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+enum EditorTab {
+    Hierarchy,
+    Viewport,
+    Inspector,
+    ContentBrowser,
+    Console,
+}
+
+impl EditorTab {
+    fn title(self) -> &'static str {
+        match self {
+            Self::Hierarchy => "Hierarchy",
+            Self::Viewport => "Viewport",
+            Self::Inspector => "Inspector",
+            Self::ContentBrowser => "Content Browser",
+            Self::Console => "Console",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct EditorState {
+    selected_entity: String,
+    translation: [f32; 3],
+    rotation: [f32; 3],
+    scale: [f32; 3],
+    console_lines: Vec<String>,
+}
+
+impl Default for EditorState {
+    fn default() -> Self {
+        Self {
+            selected_entity: "Camera".to_owned(),
+            translation: [0.0, 0.0, 0.0],
+            rotation: [0.0, 0.0, 0.0],
+            scale: [1.0, 1.0, 1.0],
+            console_lines: vec![
+                "AstraEngine Editor 0.2 initialized.".to_owned(),
+                "Viewport is a UI preview; GPU rendering is the next milestone.".to_owned(),
+            ],
+        }
+    }
+}
+
+fn default_dock_state() -> DockState<EditorTab> {
+    let mut dock = DockState::new(vec![EditorTab::Viewport]);
+    let tree = dock.main_surface_mut();
+
+    let [center, _hierarchy] =
+        tree.split_left(NodeIndex::root(), 0.20, vec![EditorTab::Hierarchy]);
+    let [center, _inspector] =
+        tree.split_right(center, 0.76, vec![EditorTab::Inspector]);
+    tree.split_below(
+        center,
+        0.72,
+        vec![EditorTab::ContentBrowser, EditorTab::Console],
+    );
+
+    dock
+}
+
+struct AstraEditor {
+    dock_state: DockState<EditorTab>,
+    state: EditorState,
+}
+
+impl AstraEditor {
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        cc.egui_ctx.set_visuals(egui::Visuals::dark());
+
+        let dock_state = cc
+            .storage
+            .and_then(|storage| eframe::get_value(storage, DOCK_STATE_KEY))
+            .unwrap_or_else(default_dock_state);
+        let state = cc
+            .storage
+            .and_then(|storage| eframe::get_value(storage, EDITOR_STATE_KEY))
+            .unwrap_or_default();
+
+        Self { dock_state, state }
+    }
+
+    fn log(&mut self, message: impl Into<String>) {
+        self.state.console_lines.push(message.into());
+    }
+
+    fn menu_bar(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("New Scene").clicked() {
+                        self.log("New Scene: scene document workflow is not implemented yet.");
+                        ui.close_menu();
+                    }
+                    if ui.button("Save").clicked() {
+                        self.log("Save requested: scene serialization is scheduled for a later milestone.");
+                        ui.close_menu();
+                    }
+                    ui.separator();
+                    if ui.button("Exit").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                ui.menu_button("Edit", |ui| {
+                    ui.add_enabled(false, egui::Button::new("Undo"));
+                    ui.add_enabled(false, egui::Button::new("Redo"));
+                });
+                ui.menu_button("Window", |ui| {
+                    if ui.button("Reset Layout").clicked() {
+                        self.dock_state = default_dock_state();
+                        self.log("Editor panel layout reset.");
+                        ui.close_menu();
+                    }
+                    ui.separator();
+                    for tab in [
+                        EditorTab::Hierarchy,
+                        EditorTab::Viewport,
+                        EditorTab::Inspector,
+                        EditorTab::ContentBrowser,
+                        EditorTab::Console,
+                    ] {
+                        if ui.button(format!("Show {}", tab.title())).clicked() {
+                            self.dock_state.push_to_focused_leaf(tab);
+                            ui.close_menu();
+                        }
+                    }
+                });
+                ui.menu_button("Help", |ui| {
+                    ui.label(format!("{} {}", EngineInfo::CURRENT.name, EngineInfo::CURRENT.version));
+                    ui.label("AstraEngine standalone editor prototype");
+                });
+            });
+        });
+    }
+
+    fn toolbar(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("editor_toolbar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("＋ New").clicked() {
+                    self.log("New project command selected (project wizard is not implemented yet).");
+                }
+                if ui.button("Save").clicked() {
+                    self.log("Save requested (scene serialization is not implemented yet).");
+                }
+                ui.separator();
+                if ui.button("▶ Play").clicked() {
+                    self.log("Play requested (game launch is not implemented yet).");
+                }
+                if ui.button("■ Stop").clicked() {
+                    self.log("Stop requested.");
+                }
+                ui.separator();
+                ui.label("Scene: Untitled");
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label("Windows · Editor 0.2");
+                });
+            });
+        });
+    }
+}
+
+impl eframe::App for AstraEditor {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.menu_bar(ctx);
+        self.toolbar(ctx);
+
+        egui::TopBottomPanel::bottom("status_bar")
+            .exact_height(22.0)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.small("Ready");
+                    ui.separator();
+                    ui.small(format!("Selected: {}", self.state.selected_entity));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.small("AstraEngine");
+                    });
+                });
+            });
+
+        egui::CentralPanel::default()
+            .show(ctx, |ui| {
+                let mut viewer = EditorTabViewer {
+                    state: &mut self.state,
+                };
+                DockArea::new(&mut self.dock_state)
+                    .style(Style::from_egui(ui.style()))
+                    .show_inside(ui, &mut viewer);
+            });
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, DOCK_STATE_KEY, &self.dock_state);
+        eframe::set_value(storage, EDITOR_STATE_KEY, &self.state);
+    }
+
+    fn persist_egui_memory(&self) -> bool {
+        true
+    }
+}
+
+struct EditorTabViewer<'a> {
+    state: &'a mut EditorState,
+}
+
+impl TabViewer for EditorTabViewer<'_> {
+    type Tab = EditorTab;
+
+    fn id(&mut self, tab: &mut Self::Tab) -> Id {
+        Id::new(*tab as u8)
+    }
+
+    fn title(&mut self, tab: &mut Self::Tab) -> WidgetText {
+        tab.title().into()
+    }
+
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        match tab {
+            EditorTab::Hierarchy => self.hierarchy_ui(ui),
+            EditorTab::Viewport => self.viewport_ui(ui),
+            EditorTab::Inspector => self.inspector_ui(ui),
+            EditorTab::ContentBrowser => self.content_browser_ui(ui),
+            EditorTab::Console => self.console_ui(ui),
+        }
+    }
+}
+
+impl EditorTabViewer<'_> {
+    fn hierarchy_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.strong("World");
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.small("＋");
+            });
+        });
+        ui.separator();
+
+        for entity in ["Camera", "Directional Light", "Cube"] {
+            let selected = self.state.selected_entity == entity;
+            if ui.selectable_label(selected, format!("◇  {entity}")).clicked() {
+                self.state.selected_entity = entity.to_owned();
+            }
+        }
+    }
+
+    fn viewport_ui(&mut self, ui: &mut Ui) {
+        let available = ui.available_size().max(Vec2::splat(80.0));
+        let (response, painter) = ui.allocate_painter(available, Sense::click_and_drag());
+        let rect = response.rect;
+
+        painter.rect_filled(rect, 0.0, Color32::from_rgb(29, 34, 43));
+        let grid = Color32::from_rgb(52, 61, 73);
+        let spacing = 32.0;
+        let mut x = rect.left();
+        while x < rect.right() {
+            painter.line_segment(
+                [egui::pos2(x, rect.top()), egui::pos2(x, rect.bottom())],
+                Stroke::new(1.0, grid),
+            );
+            x += spacing;
+        }
+        let mut y = rect.top();
+        while y < rect.bottom() {
+            painter.line_segment(
+                [egui::pos2(rect.left(), y), egui::pos2(rect.right(), y)],
+                Stroke::new(1.0, grid),
+            );
+            y += spacing;
+        }
+
+        let center = rect.center();
+        painter.line_segment(
+            [egui::pos2(center.x - 80.0, center.y), egui::pos2(center.x + 80.0, center.y)],
+            Stroke::new(2.0, Color32::from_rgb(190, 75, 75)),
+        );
+        painter.line_segment(
+            [egui::pos2(center.x, center.y - 80.0), egui::pos2(center.x, center.y + 80.0)],
+            Stroke::new(2.0, Color32::from_rgb(80, 170, 105)),
+        );
+        painter.circle_stroke(center, 34.0, Stroke::new(2.0, Color32::from_rgb(110, 160, 220)));
+
+        painter.text(
+            rect.left_top() + egui::vec2(14.0, 12.0),
+            egui::Align2::LEFT_TOP,
+            "3D VIEWPORT PREVIEW",
+            egui::FontId::monospace(12.0),
+            Color32::from_rgb(190, 202, 218),
+        );
+        painter.text(
+            rect.left_bottom() + egui::vec2(14.0, -12.0),
+            egui::Align2::LEFT_BOTTOM,
+            "GPU renderer is not connected yet",
+            egui::FontId::proportional(12.0),
+            Color32::from_rgb(145, 157, 174),
+        );
+    }
+
+    fn inspector_ui(&mut self, ui: &mut Ui) {
+        ui.heading("Details");
+        ui.separator();
+        ui.label(format!("Selected Object: {}", self.state.selected_entity));
+        ui.add_space(8.0);
+
+        egui::CollapsingHeader::new("Transform")
+            .default_open(true)
+            .show(ui, |ui| {
+                vector3_editor(ui, "Location", &mut self.state.translation);
+                vector3_editor(ui, "Rotation", &mut self.state.rotation);
+                vector3_editor(ui, "Scale", &mut self.state.scale);
+            });
+
+        egui::CollapsingHeader::new("Components")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.label("Transform");
+                ui.label("No other components yet.");
+            });
+    }
+
+    fn content_browser_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.strong("Content");
+            ui.separator();
+            ui.label("AstraProject / Content");
+        });
+        ui.separator();
+        ui.horizontal_wrapped(|ui| {
+            for (icon, name) in [
+                ("📁", "Meshes"),
+                ("📁", "Materials"),
+                ("📁", "Textures"),
+                ("📁", "Scenes"),
+                ("📁", "Audio"),
+            ] {
+                ui.group(|ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading(icon);
+                        ui.label(name);
+                    });
+                });
+            }
+        });
+        ui.add_space(8.0);
+        ui.weak("Asset indexing and file operations will be added with the project system.");
+    }
+
+    fn console_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.strong("Output Log");
+            if ui.button("Clear").clicked() {
+                self.state.console_lines.clear();
+            }
+        });
+        ui.separator();
+        egui::ScrollArea::vertical()
+            .stick_to_bottom(true)
+            .show(ui, |ui| {
+                for line in &self.state.console_lines {
+                    ui.monospace(line);
+                }
+            });
+    }
+}
+
+fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
+    ui.horizontal(|ui| {
+        ui.label(label);
+        for (axis, value) in ["X", "Y", "Z"].into_iter().zip(values.iter_mut()) {
+            ui.label(axis);
+            ui.add(egui::DragValue::new(value).speed(0.1).max_decimals(3));
+        }
+    });
+}
+
+fn main() -> eframe::Result<()> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title("AstraEngine Editor 0.2")
+            .with_inner_size([1440.0, 900.0])
+            .with_min_inner_size([1024.0, 680.0]),
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "AstraEngine Editor 0.2",
+        options,
+        Box::new(|cc| {
+            let mut editor = AstraEditor::new(cc);
+            let runtime = astra_runtime::GameRuntime::default();
+            editor.log(format!("Runtime state: {:?}", runtime.state()));
+            Ok(Box::new(editor))
+        }),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_layout_contains_all_five_editor_panels() {
+        let dock = default_dock_state();
+        let tabs: Vec<EditorTab> = dock
+            .main_surface()
+            .iter_all_tabs()
+            .copied()
+            .collect();
+
+        for expected in [
+            EditorTab::Hierarchy,
+            EditorTab::Viewport,
+            EditorTab::Inspector,
+            EditorTab::ContentBrowser,
+            EditorTab::Console,
+        ] {
+            assert!(tabs.contains(&expected), "missing panel: {expected:?}");
+        }
+    }
+
+    #[test]
+    fn editor_state_has_a_default_selection() {
+        assert_eq!(EditorState::default().selected_entity, "Camera");
+    }
 }
