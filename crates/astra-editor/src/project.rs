@@ -143,6 +143,9 @@ impl ProjectDocument {
             if entry.id.trim().is_empty() || !scene_ids.insert(entry.id.as_str()) {
                 issues.push(issue(&location, "Scene ID is empty or duplicated"));
             }
+            if entry.name.trim().is_empty() {
+                issues.push(issue(&location, "Scene name cannot be empty"));
+            }
             validate_scene(&entry.scene, &location, &mut issues);
         }
         if !scene_ids.contains(self.active_scene_id.as_str()) {
@@ -172,6 +175,9 @@ impl ProjectDocument {
         let file_version = value.get("format_version").and_then(serde_json::Value::as_u64).unwrap_or(1) as u32;
         if file_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(file_version));
+        }
+        if value.get("magic").and_then(serde_json::Value::as_str).is_some_and(|magic| magic != PROJECT_MAGIC) {
+            return Err(ProjectError::Invalid(vec![issue("header", "Invalid AstraEngine project signature")]));
         }
 
         // Compatibility migration: early editor builds saved a bare Scene JSON.
