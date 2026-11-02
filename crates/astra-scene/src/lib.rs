@@ -128,6 +128,73 @@ impl PrimitiveMesh {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MeshGeometry {
+    /// Unique positions in model-local space.
+    pub positions: Vec<[f32; 3]>,
+    /// Triangle indices into positions.
+    pub indices: Vec<u32>,
+    pub bounds_min: [f32; 3],
+    pub bounds_max: [f32; 3],
+    /// Original asset filename for provenance; geometry is embedded in the project.
+    pub source: String,
+}
+
+impl MeshGeometry {
+    pub fn new(positions: Vec<[f32; 3]>, indices: Vec<u32>, source: impl Into<String>) -> Result<Self, &'static str> {
+        if positions.is_empty() || indices.is_empty() || indices.len() % 3 != 0 {
+            return Err("mesh must contain positions and triangle indices");
+        }
+        if positions.iter().flatten().any(|value| !value.is_finite()) {
+            return Err("mesh contains non-finite vertex positions");
+        }
+        if indices.iter().any(|index| *index as usize >= positions.len()) {
+            return Err("mesh index is outside the vertex array");
+        }
+        let mut min = Vec3::splat(f32::INFINITY);
+        let mut max = Vec3::splat(f32::NEG_INFINITY);
+        for position in &positions {
+            let point = Vec3::from_array(*position);
+            min = min.min(point);
+            max = max.max(point);
+        }
+        Ok(Self {
+            positions,
+            indices,
+            bounds_min: min.to_array(),
+            bounds_max: max.to_array(),
+            source: source.into(),
+        })
+    }
+
+    pub fn triangle_vertices(&self) -> Vec<[f32; 3]> {
+        self.indices.iter().map(|index| self.positions[*index as usize]).collect()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MeshComponent {
+    Primitive(PrimitiveMesh),
+    Imported(MeshGeometry),
+}
+
+impl MeshComponent {
+    pub fn triangle_vertices(&self) -> Vec<[f32; 3]> {
+        match self {
+            Self::Primitive(mesh) => mesh.triangle_vertices(),
+            Self::Imported(geometry) => geometry.triangle_vertices(),
+        }
+    }
+
+    pub fn local_bounds(&self) -> ([f32; 3], [f32; 3]) {
+        match self {
+            Self::Primitive(mesh) => mesh.local_bounds(),
+            Self::Imported(geometry) => (geometry.bounds_min, geometry.bounds_max),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Material {
     pub base_color: [f32; 4],
@@ -151,6 +218,9 @@ pub struct Entity {
     pub pivot: [f32; 3],
     #[serde(default)]
     pub mesh: Option<PrimitiveMesh>,
+    /// Unified mesh component. `mesh` remains as a legacy compatibility field.
+    #[serde(default)]
+    pub mesh_component: Option<MeshComponent>,
     #[serde(default)]
     pub material: Option<Material>,
 }
@@ -165,12 +235,14 @@ impl Scene {
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
         self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
-        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None, material: None });
+        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None, mesh_component: None, material: None });
         id
     }
     pub fn spawn_primitive(&mut self, name: impl Into<String>, mesh: PrimitiveMesh) -> EntityId {
         let id = self.spawn(name);
-        self.get_mut(id).expect("new entity exists").mesh = Some(mesh);
+        let entity = self.get_mut(id).expect("new entity exists");
+        entity.mesh = Some(mesh);
+        entity.mesh_component = Some(MeshComponent::Primitive(mesh));
         id
     }
     pub fn spawn_cube(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Cube) }
@@ -284,6 +356,7 @@ impl Scene {
             new.transform = original.transform;
             new.pivot = original.pivot;
             new.mesh = original.mesh;
+            new.mesh_component = original.mesh_component;
             new.material = original.material;
         }
         for old in &ids {
@@ -328,6 +401,30 @@ mod tests {
         assert_eq!(loaded.get(id).unwrap().mesh,Some(PrimitiveMesh::Cube));
         assert_eq!(loaded.get(id).unwrap().pivot,[0.0;3]);
         assert_eq!(loaded.get(id).unwrap().material,None);
+        assert_eq!(loaded.get(id).unwrap().mesh_component,None);
+    }
+
+    #[test]
+    fn imported_mesh_geometry_validates_bounds_and_round_trips() {
+        let geometry = MeshGeometry::new(
+            vec![[-2.0, 0.0, 1.0], [2.0, 0.0, 1.0], [0.0, 3.0, -1.0]],
+            vec![0, 1, 2],
+            "triangle.obj",
+        ).unwrap();
+        assert_eq!(geometry.bounds_min, [-2.0, 0.0, -1.0]);
+        assert_eq!(geometry.bounds_max, [2.0, 3.0, 1.0]);
+        let mut scene = Scene::new();
+        let id = scene.spawn("Imported");
+        scene.get_mut(id).unwrap().mesh_component = Some(MeshComponent::Imported(geometry));
+        let encoded = serde_json::to_vec(&scene).unwrap();
+        let decoded: Scene = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, scene);
+    }
+
+    #[test]
+    fn imported_mesh_rejects_invalid_indices_and_non_finite_positions() {
+        assert!(MeshGeometry::new(vec![[0.0; 3]], vec![0, 1, 0], "bad.obj").is_err());
+        assert!(MeshGeometry::new(vec![[f32::NAN, 0.0, 0.0]], vec![0, 0, 0], "bad.obj").is_err());
     }
     #[test] fn world_matrix_inherits_parent_translation_rotation_and_scale() {
         let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C");
