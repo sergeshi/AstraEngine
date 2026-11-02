@@ -350,7 +350,7 @@ mod tests {
     fn fbx_import_rejects_invalid_files_without_panicking() {
         let path = std::env::temp_dir().join(format!("astra-invalid-{}.fbx", std::process::id()));
         fs::write(&path, "not an FBX file").unwrap();
-        assert!(load_fbx(&path, "invalid.fbx".to_owned()).is_err());
+        assert!(load_fbx(&path, "invalid.fbx".to_owned(), None).is_err());
         let _ = fs::remove_file(path);
     }
 }
