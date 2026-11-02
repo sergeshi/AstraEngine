@@ -202,7 +202,17 @@ fn append_gltf_mesh(
             if let (Some(root), Some(info)) = (asset_root, pbr.base_color_texture()) {
                 let image_index = info.texture().source().index();
                 if let Some(data) = images.get(image_index) {
-                    let color_type = match data.format { gltf::image::Format::R8 => image::ColorType::L8, gltf::image::Format::R8G8 => image::ColorType::La8, gltf::image::Format::R8G8B8 => image::ColorType::Rgb8, gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8, _ => image::ColorType::Rgba8 };
+                    let color_type = match data.format {
+                        gltf::image::Format::R8 => image::ColorType::L8,
+                        gltf::image::Format::R8G8 => image::ColorType::La8,
+                        gltf::image::Format::R8G8B8 => image::ColorType::Rgb8,
+                        gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8,
+                        gltf::image::Format::R16 => image::ColorType::L16,
+                        gltf::image::Format::R16G16 => image::ColorType::La16,
+                        gltf::image::Format::R16G16B16 => image::ColorType::Rgb16,
+                        gltf::image::Format::R16G16B16A16 => image::ColorType::Rgba16,
+                        _ => return Err("Unsupported glTF image pixel format".to_owned()),
+                    };
                     if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("gltf-base-color-{image_index}")) { material.base_color_texture = Some(relative); }
                 }
             }
