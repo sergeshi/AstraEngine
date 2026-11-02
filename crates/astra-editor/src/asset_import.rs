@@ -325,10 +325,14 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
                 let point = transform.transform_point3(glam::Vec3::new(vertex.x as f32, vertex.y as f32, vertex.z as f32));
                 let next_index = u32::try_from(positions.len()).map_err(|_| "FBX mesh exceeds the supported vertex count".to_owned())?;
                 positions.push(point.to_array()); indices.push(next_index);
-                let n = ufbx::get_vertex_vec3(&mesh.vertex_normal, vertex_index as usize);
-                normals.push(normal_transform.transform_vector3(glam::Vec3::new(n.x as f32, n.y as f32, n.z as f32)).normalize_or_zero().to_array());
-                let uv = ufbx::get_vertex_vec2(&mesh.vertex_uv, vertex_index as usize);
-                uvs.push([uv.x as f32, uv.y as f32]);
+                if mesh.vertex_normal.exists {
+                    let n = ufbx::get_vertex_vec3(&mesh.vertex_normal, vertex_index as usize);
+                    normals.push(normal_transform.transform_vector3(glam::Vec3::new(n.x as f32, n.y as f32, n.z as f32)).normalize_or_zero().to_array());
+                }
+                if mesh.vertex_uv.exists {
+                    let uv = ufbx::get_vertex_vec2(&mesh.vertex_uv, vertex_index as usize);
+                    uvs.push([uv.x as f32, uv.y as f32]);
+                }
             }
         }
         if !mesh.vertex_normal.exists { normals.clear(); }
