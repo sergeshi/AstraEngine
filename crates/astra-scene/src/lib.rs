@@ -254,6 +254,8 @@ pub struct Entity {
     pub mesh_component: Option<MeshComponent>,
     #[serde(default)]
     pub material: Option<Material>,
+    #[serde(default)]
+    pub material_asset_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -266,7 +268,7 @@ impl Scene {
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
         self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
-        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None, mesh_component: None, material: None });
+        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None, mesh_component: None, material: None, material_asset_id: None });
         id
     }
     pub fn spawn_primitive(&mut self, name: impl Into<String>, mesh: PrimitiveMesh) -> EntityId {
@@ -389,6 +391,7 @@ impl Scene {
             new.mesh = original.mesh;
             new.mesh_component = original.mesh_component;
             new.material = original.material.clone();
+            new.material_asset_id = original.material_asset_id.clone();
         }
         for old in &ids {
             let old_entity = self.get(*old).ok_or("invalid subtree")?;
