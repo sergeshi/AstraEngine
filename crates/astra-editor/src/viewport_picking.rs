@@ -1,7 +1,7 @@
 use crate::viewport_camera;
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use egui::{Pos2, Rect};
-use glam::{EulerRot, Mat4, Quat, Vec3, Vec4};
+use glam::{Mat4, Vec3, Vec4};
 
 /// Returns the closest cube intersected by the pointer ray in the viewport.
 pub fn pick_entity(
@@ -44,16 +44,9 @@ pub fn pick_entity(
             continue;
         }
 
-        let transform = Mat4::from_scale_rotation_translation(
-            Vec3::from_array(entity.transform.scale),
-            Quat::from_euler(
-                EulerRot::XYZ,
-                entity.transform.rotation[0],
-                entity.transform.rotation[1],
-                entity.transform.rotation[2],
-            ),
-            Vec3::from_array(entity.transform.translation),
-        );
+        let Some(transform) = scene.world_matrix(entity.id) else {
+            continue;
+        };
         let determinant = transform.determinant();
         if !determinant.is_finite() || determinant.abs() < 1.0e-8 {
             continue;

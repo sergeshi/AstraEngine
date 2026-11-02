@@ -1,13 +1,12 @@
-//! Scene data model. Rendering and editor UI are intentionally kept out of this crate.
+//! Serializable scene graph with local and inherited world-space transforms.
 
+use glam::{EulerRot, Mat4, Quat, Vec3};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-/// Stable identifier for an entity within a scene.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EntityId(pub u64);
 
-/// Local-space transform represented without a graphics-backend dependency.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Transform {
     pub translation: [f32; 3],
@@ -15,24 +14,33 @@ pub struct Transform {
     pub rotation: [f32; 3],
     pub scale: [f32; 3],
 }
-
 impl Default for Transform {
-    fn default() -> Self {
-        Self {
-            translation: [0.0; 3],
-            rotation: [0.0; 3],
-            scale: [1.0; 3],
+    fn default() -> Self { Self { translation: [0.0; 3], rotation: [0.0; 3], scale: [1.0; 3] } }
+}
+impl Transform {
+    pub fn matrix(self) -> Mat4 {
+        Mat4::from_scale_rotation_translation(
+            Vec3::from_array(self.scale),
+            Quat::from_euler(EulerRot::XYZ, self.rotation[0], self.rotation[1], self.rotation[2]),
+            Vec3::from_array(self.translation),
+        )
+    }
+    pub fn from_matrix(matrix: Mat4) -> Option<Self> {
+        if !matrix.is_finite() { return None; }
+        let (scale, rotation, translation) = matrix.to_scale_rotation_translation();
+        if !scale.is_finite() || !rotation.is_finite() || !translation.is_finite() { return None; }
+        let rebuilt = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+        if matrix.to_cols_array().iter().zip(rebuilt.to_cols_array()).any(|(a, b)| (*a - b).abs() > 1.0e-3) {
+            return None;
         }
+        let (x, y, z) = rotation.to_euler(EulerRot::XYZ);
+        Some(Self { translation: translation.to_array(), rotation: [x, y, z], scale: scale.to_array() })
     }
 }
 
-/// Built-in primitive geometry that can be rendered by the editor viewport.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PrimitiveMesh {
-    Cube,
-}
+pub enum PrimitiveMesh { Cube }
 
-/// Minimal scene graph node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
@@ -43,132 +51,179 @@ pub struct Entity {
     pub mesh: Option<PrimitiveMesh>,
 }
 
-/// Serializable in-memory scene model with deterministic entity iteration.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
     next_id: u64,
     entities: BTreeMap<EntityId, Entity>,
 }
-
 impl Scene {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
+    pub fn new() -> Self { Self::default() }
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
-        self.next_id = self
-            .next_id
-            .max(self.entities.keys().map(|id| id.0).max().unwrap_or(0))
-            + 1;
+        self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
-        self.entities.insert(
-            id,
-            Entity {
-                id,
-                name: name.into(),
-                parent: None,
-                transform: Transform::default(),
-                mesh: None,
-            },
-        );
+        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), mesh: None });
         id
     }
-
     pub fn spawn_cube(&mut self, name: impl Into<String>) -> EntityId {
         let id = self.spawn(name);
-        if let Some(entity) = self.get_mut(id) {
-            entity.mesh = Some(PrimitiveMesh::Cube);
-        }
+        self.get_mut(id).expect("new entity exists").mesh = Some(PrimitiveMesh::Cube);
         id
     }
+    pub fn get(&self, id: EntityId) -> Option<&Entity> { self.entities.get(&id) }
+    pub fn get_mut(&mut self, id: EntityId) -> Option<&mut Entity> { self.entities.get_mut(&id) }
+    pub fn iter(&self) -> impl Iterator<Item = &Entity> { self.entities.values() }
+    pub fn len(&self) -> usize { self.entities.len() }
+    pub fn is_empty(&self) -> bool { self.entities.is_empty() }
 
-    pub fn get(&self, id: EntityId) -> Option<&Entity> {
-        self.entities.get(&id)
+    pub fn roots(&self) -> impl Iterator<Item = &Entity> {
+        self.entities.values().filter(|e| e.parent.is_none())
     }
-
-    pub fn get_mut(&mut self, id: EntityId) -> Option<&mut Entity> {
-        self.entities.get_mut(&id)
+    pub fn children(&self, parent: EntityId) -> impl Iterator<Item = &Entity> {
+        self.entities.values().filter(move |e| e.parent == Some(parent))
     }
-
+    pub fn local_matrix(&self, id: EntityId) -> Option<Mat4> { Some(self.get(id)?.transform.matrix()) }
+    pub fn world_matrix(&self, id: EntityId) -> Option<Mat4> {
+        let entity = self.get(id)?;
+        let local = entity.transform.matrix();
+        match entity.parent {
+            Some(parent) => Some(self.world_matrix(parent)? * local),
+            None => Some(local),
+        }
+    }
+    pub fn world_transform(&self, id: EntityId) -> Option<Transform> {
+        Transform::from_matrix(self.world_matrix(id)?)
+    }
+    pub fn set_world_transform(&mut self, id: EntityId, world: Transform) -> Result<(), &'static str> {
+        let parent = self.get(id).ok_or("entity does not exist")?.parent;
+        let local_matrix = if let Some(parent) = parent {
+            let parent_world = self.world_matrix(parent).ok_or("parent does not exist")?;
+            let determinant = parent_world.determinant();
+            if !determinant.is_finite() || determinant.abs() < 1.0e-8 { return Err("parent transform is not invertible"); }
+            parent_world.inverse() * world.matrix()
+        } else { world.matrix() };
+        let local = Transform::from_matrix(local_matrix).ok_or("world transform cannot be represented as local TRS")?;
+        self.get_mut(id).ok_or("entity does not exist")?.transform = local;
+        Ok(())
+    }
+    pub fn set_parent(&mut self, id: EntityId, parent: Option<EntityId>, keep_world: bool) -> Result<(), &'static str> {
+        if !self.entities.contains_key(&id) { return Err("entity does not exist"); }
+        if let Some(parent_id) = parent {
+            if !self.entities.contains_key(&parent_id) { return Err("parent does not exist"); }
+            if parent_id == id || self.is_descendant(parent_id, id) { return Err("parenting would create a cycle"); }
+        }
+        if self.get(id).and_then(|e| e.parent) == parent { return Ok(()); }
+        let previous_parent = self.get(id).and_then(|entity| entity.parent);
+        let world = if keep_world { Some(self.world_matrix(id).ok_or("invalid existing hierarchy")?) } else { None };
+        self.get_mut(id).expect("entity checked").parent = parent;
+        if let Some(world) = world {
+            let local_matrix = if let Some(parent_id) = parent {
+                let parent_world = self.world_matrix(parent_id).ok_or("invalid parent hierarchy")?;
+                let determinant = parent_world.determinant();
+                if !determinant.is_finite() || determinant.abs() < 1.0e-8 {
+                    self.get_mut(id).expect("entity exists").parent = previous_parent;
+                    return Err("parent transform is not invertible");
+                }
+                parent_world.inverse() * world
+            } else { world };
+            let Some(local) = Transform::from_matrix(local_matrix) else {
+                self.get_mut(id).expect("entity exists").parent = previous_parent;
+                return Err("reparenting would require a sheared transform");
+            };
+            self.get_mut(id).expect("entity exists").transform = local;
+        }
+        Ok(())
+    }
+    pub fn is_descendant(&self, candidate: EntityId, ancestor: EntityId) -> bool {
+        let mut cursor = self.get(candidate).and_then(|e| e.parent);
+        let mut visited = BTreeSet::new();
+        while let Some(id) = cursor {
+            if id == ancestor { return true; }
+            if !visited.insert(id) { return true; }
+            cursor = self.get(id).and_then(|e| e.parent);
+        }
+        false
+    }
+    pub fn subtree_ids(&self, root: EntityId) -> Vec<EntityId> {
+        if !self.entities.contains_key(&root) { return Vec::new(); }
+        let mut result = vec![root];
+        let mut index = 0;
+        while index < result.len() {
+            let parent = result[index];
+            result.extend(self.children(parent).map(|e| e.id));
+            index += 1;
+        }
+        result
+    }
     pub fn remove(&mut self, id: EntityId) -> Option<Entity> {
         let removed = self.entities.remove(&id)?;
-        for entity in self.entities.values_mut() {
-            if entity.parent == Some(id) {
-                entity.parent = None;
-            }
-        }
+        for entity in self.entities.values_mut() { if entity.parent == Some(id) { entity.parent = None; } }
         Some(removed)
     }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Entity> {
-        self.entities.values()
+    pub fn remove_subtree(&mut self, id: EntityId) -> Vec<Entity> {
+        let ids = self.subtree_ids(id);
+        ids.into_iter().rev().filter_map(|entity_id| self.entities.remove(&entity_id)).collect()
     }
-
-    pub fn len(&self) -> usize {
-        self.entities.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.entities.is_empty()
+    pub fn duplicate_subtree(&mut self, id: EntityId) -> Result<EntityId, &'static str> {
+        let source = self.get(id).ok_or("entity does not exist")?.clone();
+        let ids = self.subtree_ids(id);
+        let mut remap = BTreeMap::new();
+        for old in &ids {
+            let original = self.get(*old).ok_or("invalid subtree")?.clone();
+            let new_id = self.spawn(original.name.clone() + " Copy");
+            remap.insert(*old, new_id);
+            let new = self.get_mut(new_id).expect("new entity exists");
+            new.transform = original.transform;
+            new.mesh = original.mesh;
+        }
+        for old in &ids {
+            let old_entity = self.get(*old).ok_or("invalid subtree")?;
+            let new_id = remap[old];
+            let parent = if *old == id { source.parent } else { old_entity.parent.and_then(|p| remap.get(&p).copied()) };
+            self.get_mut(new_id).expect("new entity exists").parent = parent;
+        }
+        Ok(remap[&id])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn close(a: Vec3, b: Vec3) { assert!((a-b).length() < 1.0e-4, "{a:?} != {b:?}"); }
 
-    #[test]
-    fn spawned_entities_receive_unique_ids_and_default_transforms() {
-        let mut scene = Scene::new();
-        let first = scene.spawn("Camera");
-        let second = scene.spawn("Light");
-
-        assert_ne!(first, second);
-        assert_eq!(scene.get(first).expect("entity exists").name, "Camera");
-        assert_eq!(
-            scene.get(second).expect("entity exists").transform,
-            Transform::default()
-        );
+    #[test] fn spawned_entities_have_unique_ids_and_default_transforms() {
+        let mut s=Scene::new(); let a=s.spawn("Camera"); let b=s.spawn("Light");
+        assert_ne!(a,b); assert_eq!(s.get(a).unwrap().transform,Transform::default());
     }
-
-    #[test]
-    fn spawned_cube_has_renderable_primitive_mesh() {
-        let mut scene = Scene::new();
-        let cube = scene.spawn_cube("Cube");
-        assert_eq!(
-            scene.get(cube).expect("cube exists").mesh,
-            Some(PrimitiveMesh::Cube)
-        );
-        let empty = scene.spawn("Empty");
-        assert_eq!(scene.get(empty).expect("empty entity exists").mesh, None);
+    #[test] fn spawned_cube_has_mesh() { let mut s=Scene::new(); let id=s.spawn_cube("Cube"); assert_eq!(s.get(id).unwrap().mesh,Some(PrimitiveMesh::Cube)); }
+    #[test] fn world_matrix_inherits_parent_translation_rotation_and_scale() {
+        let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C");
+        s.get_mut(p).unwrap().transform=Transform{translation:[3.0,0.0,0.0],rotation:[0.0,0.0,std::f32::consts::FRAC_PI_2],scale:[2.0;3]};
+        s.get_mut(c).unwrap().transform.translation=[1.0,0.0,0.0]; s.set_parent(c,Some(p),false).unwrap();
+        let world=s.world_matrix(c).unwrap().transform_point3(Vec3::ZERO);
+        close(world,Vec3::new(3.0,2.0,0.0));
     }
-
-    #[test]
-    fn removing_parent_detaches_children() {
-        let mut scene = Scene::new();
-        let parent = scene.spawn("Parent");
-        let child = scene.spawn("Child");
-        scene.get_mut(child).expect("child exists").parent = Some(parent);
-
-        scene.remove(parent);
-
-        assert_eq!(scene.get(child).expect("child remains").parent, None);
+    #[test] fn reparent_keep_world_preserves_world_position() {
+        let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn("C");
+        s.get_mut(p).unwrap().transform.translation=[5.0,0.0,0.0];
+        s.get_mut(c).unwrap().transform.translation=[2.0,1.0,0.0];
+        let before=s.world_matrix(c).unwrap().transform_point3(Vec3::ZERO);
+        s.set_parent(c,Some(p),true).unwrap();
+        close(s.world_matrix(c).unwrap().transform_point3(Vec3::ZERO),before);
     }
-
-    #[test]
-    fn scene_round_trip_preserves_entities_and_next_identifier() {
-        let mut scene = Scene::new();
-        let cube = scene.spawn("Cube");
-        scene
-            .get_mut(cube)
-            .expect("cube exists")
-            .transform
-            .translation = [1.0, 2.0, 3.0];
-
-        let encoded = serde_json::to_string(&scene).expect("scene serializes");
-        let mut decoded: Scene = serde_json::from_str(&encoded).expect("scene deserializes");
-        assert_eq!(decoded, scene);
-        let next = decoded.spawn("Sphere");
-        assert!(next.0 > cube.0);
+    #[test] fn parenting_rejects_self_and_cycles() {
+        let mut s=Scene::new(); let a=s.spawn("A"); let b=s.spawn("B");
+        s.set_parent(b,Some(a),false).unwrap();
+        assert!(s.set_parent(a,Some(b),false).is_err()); assert!(s.set_parent(a,Some(a),false).is_err());
+    }
+    #[test] fn subtree_delete_and_duplicate_preserve_hierarchy() {
+        let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C"); s.set_parent(c,Some(p),false).unwrap();
+        let copy=s.duplicate_subtree(p).unwrap(); let copy_child=s.children(copy).next().unwrap().id;
+        assert_eq!(s.get(copy_child).unwrap().mesh,Some(PrimitiveMesh::Cube));
+        assert_eq!(s.remove_subtree(p).len(),2); assert!(s.get(c).is_none());
+    }
+    #[test] fn serialization_round_trip_keeps_parent_links_and_ids() {
+        let mut s=Scene::new(); let a=s.spawn("A"); let b=s.spawn("B"); s.set_parent(b,Some(a),false).unwrap();
+        let json=serde_json::to_string(&s).unwrap(); let decoded:Scene=serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded,s); assert_eq!(decoded.get(b).unwrap().parent,Some(a));
     }
 }

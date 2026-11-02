@@ -131,6 +131,7 @@ name = "astra-scene"
 version = "0.1.0"
 dependencies = [
  "astra-core",
+ "glam",
  "serde",
  "serde_json",
 ]

@@ -3,7 +3,7 @@
 use crate::viewport_camera;
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use eframe::glow::{self, HasContext};
-use glam::{EulerRot, Mat4, Quat, Vec3};
+use glam::{Mat4, Vec3};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -251,16 +251,9 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
         if entity.mesh != Some(PrimitiveMesh::Cube) {
             continue;
         }
-        let transform = Mat4::from_scale_rotation_translation(
-            Vec3::from_array(entity.transform.scale),
-            Quat::from_euler(
-                EulerRot::XYZ,
-                entity.transform.rotation[0],
-                entity.transform.rotation[1],
-                entity.transform.rotation[2],
-            ),
-            Vec3::from_array(entity.transform.translation),
-        );
+        let Some(transform) = scene.world_matrix(entity.id) else {
+            continue;
+        };
         let selected = selected_entity == Some(entity.id);
         for (face_color, corners) in cube_faces {
             let color = if selected {

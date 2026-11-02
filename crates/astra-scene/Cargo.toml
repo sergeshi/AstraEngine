@@ -8,6 +8,7 @@ rust-version.workspace = true
 
 [dependencies]
 astra-core = { path = "../astra-core" }
+glam = "0.30"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]

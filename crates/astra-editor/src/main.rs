@@ -41,6 +41,12 @@ impl EditorTab {
 struct EditorState {
     scene: Scene,
     selected_entity: Option<EntityId>,
+    #[serde(default)]
+    selected_entities: Vec<EntityId>,
+    #[serde(default)]
+    undo_stack: Vec<Scene>,
+    #[serde(default)]
+    redo_stack: Vec<Scene>,
     console_lines: Vec<String>,
 }
 
@@ -54,11 +60,75 @@ impl Default for EditorState {
         Self {
             scene,
             selected_entity: Some(cube),
+            selected_entities: vec![cube],
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
             console_lines: vec![
                 "AstraEngine Editor 0.4 initialized.".to_owned(),
                 "Hierarchy and Inspector use the shared scene model.".to_owned(),
             ],
         }
+    }
+}
+
+impl EditorState {
+    fn checkpoint(&mut self) {
+        self.undo_stack.push(self.scene.clone());
+        if self.undo_stack.len() > 128 { self.undo_stack.remove(0); }
+        self.redo_stack.clear();
+    }
+    fn undo(&mut self) {
+        if let Some(previous) = self.undo_stack.pop() {
+            self.redo_stack.push(self.scene.clone()); self.scene = previous;
+            self.selected_entities.retain(|id| self.scene.get(*id).is_some());
+            self.selected_entity = self.selected_entities.last().copied();
+        }
+    }
+    fn redo(&mut self) {
+        if let Some(next) = self.redo_stack.pop() {
+            self.undo_stack.push(self.scene.clone()); self.scene = next;
+            self.selected_entities.retain(|id| self.scene.get(*id).is_some());
+            self.selected_entity = self.selected_entities.last().copied();
+        }
+    }
+    fn select(&mut self, id: EntityId, additive: bool) {
+        if additive {
+            if self.selected_entities.contains(&id) { self.selected_entities.retain(|v| *v != id); }
+            else { self.selected_entities.push(id); }
+        } else { self.selected_entities = vec![id]; }
+        self.selected_entity = self.selected_entities.last().copied();
+    }
+    fn root_selection(&self) -> Vec<EntityId> {
+        let selected = &self.selected_entities;
+        selected.iter().copied().filter(|id|
+            !selected.iter().any(|other| other != id && self.scene.is_descendant(*id, *other))
+        ).collect()
+    }
+    fn delete_selection(&mut self) {
+        let roots = self.root_selection(); if roots.is_empty() { return; }
+        self.checkpoint();
+        for id in roots { self.scene.remove_subtree(id); }
+        self.selected_entities.clear(); self.selected_entity = None;
+    }
+    fn duplicate_selection(&mut self) {
+        let roots = self.root_selection(); if roots.is_empty() { return; }
+        self.checkpoint();
+        self.selected_entities = roots.into_iter().filter_map(|id| self.scene.duplicate_subtree(id).ok()).collect();
+        self.selected_entity = self.selected_entities.last().copied();
+    }
+    fn group_selection(&mut self) {
+        let roots = self.root_selection(); if roots.len() < 2 { return; }
+        self.checkpoint();
+        let group = self.scene.spawn("Group");
+        for id in roots { let _ = self.scene.set_parent(id, Some(group), true); }
+        self.select(group, false);
+    }
+    fn unparent_selection(&mut self) {
+        let roots = self.root_selection();
+        let ids: Vec<_> = roots.into_iter().filter(|id| self.scene.get(*id).is_some_and(|e| e.parent.is_some())).collect();
+        if ids.is_empty() { return; }
+        self.checkpoint();
+        for id in ids { let _ = self.scene.set_parent(id, None, true); }
     }
 }
 
@@ -111,6 +181,9 @@ impl AstraEditor {
             .storage
             .and_then(|storage| eframe::get_value(storage, EDITOR_STATE_KEY))
             .unwrap_or_default();
+        if state.selected_entities.is_empty() {
+            state.selected_entities = state.selected_entity.into_iter().collect();
+        }
 
         let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
             Ok(renderer) => {
@@ -145,6 +218,25 @@ impl AstraEditor {
         self.state.console_lines.push(message.into());
     }
 
+    fn handle_shortcuts(&mut self, ctx: &egui::Context) {
+        if ctx.wants_keyboard_input() { return; }
+        let (undo, redo, duplicate, delete, select_all) = ctx.input(|i| (
+            i.modifiers.command && i.key_pressed(egui::Key::Z),
+            i.modifiers.command && i.key_pressed(egui::Key::Y),
+            i.modifiers.command && i.key_pressed(egui::Key::D),
+            i.key_pressed(egui::Key::Delete),
+            i.modifiers.command && i.key_pressed(egui::Key::A),
+        ));
+        if undo { self.state.undo(); }
+        if redo { self.state.redo(); }
+        if duplicate { self.state.duplicate_selection(); }
+        if delete { self.state.delete_selection(); }
+        if select_all {
+            self.state.selected_entities = self.state.scene.iter().map(|e| e.id).collect();
+            self.state.selected_entity = self.state.selected_entities.last().copied();
+        }
+    }
+
     fn menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -163,8 +255,11 @@ impl AstraEditor {
                     }
                 });
                 ui.menu_button("Edit", |ui| {
-                    ui.add_enabled(false, egui::Button::new("Undo"));
-                    ui.add_enabled(false, egui::Button::new("Redo"));
+                    if ui.add_enabled(!self.state.undo_stack.is_empty(), egui::Button::new("Undo  Ctrl+Z")).clicked() { self.state.undo(); ui.close_menu(); }
+                    if ui.add_enabled(!self.state.redo_stack.is_empty(), egui::Button::new("Redo  Ctrl+Y")).clicked() { self.state.redo(); ui.close_menu(); }
+                    ui.separator();
+                    if ui.button("Duplicate  Ctrl+D").clicked() { self.state.duplicate_selection(); ui.close_menu(); }
+                    if ui.button("Delete  Del").clicked() { self.state.delete_selection(); ui.close_menu(); }
                 });
                 ui.menu_button("Window", |ui| {
                     if ui.button("Reset Layout").clicked() {
@@ -253,6 +348,7 @@ impl AstraEditor {
 
 impl eframe::App for AstraEditor {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.handle_shortcuts(ctx);
         self.menu_bar(ctx);
         self.toolbar(ctx);
 
@@ -351,41 +447,25 @@ impl EditorTabViewer<'_> {
         ui.horizontal(|ui| {
             ui.strong("World");
             if ui.button("＋ Add Cube").clicked() {
+                self.state.checkpoint();
                 let id = self.state.scene.spawn_cube("Cube");
-                self.state.selected_entity = Some(id);
-                self.state
-                    .console_lines
-                    .push(format!("Created Cube ({})", id.0));
+                self.state.select(id, false);
+                self.state.console_lines.push(format!("Created Cube ({})", id.0));
             }
-            if ui.button("− Delete").clicked() {
-                if let Some(id) = self.state.selected_entity {
-                    if self.state.scene.remove(id).is_some() {
-                        self.state.selected_entity =
-                            self.state.scene.iter().next().map(|entity| entity.id);
-                        self.state
-                            .console_lines
-                            .push(format!("Deleted entity ({})", id.0));
-                    }
-                }
+            if ui.button("＋ Add Empty").clicked() {
+                self.state.checkpoint();
+                let id = self.state.scene.spawn("Empty");
+                self.state.select(id, false);
             }
+            if ui.button("Group").clicked() { self.state.group_selection(); }
+            if ui.button("Unparent").clicked() { self.state.unparent_selection(); }
+            if ui.button("Duplicate").clicked() { self.state.duplicate_selection(); }
+            if ui.button("Delete").clicked() { self.state.delete_selection(); }
         });
         ui.separator();
 
-        let entities: Vec<(EntityId, String)> = self
-            .state
-            .scene
-            .iter()
-            .map(|entity| (entity.id, entity.name.clone()))
-            .collect();
-        for (id, name) in entities {
-            let selected = self.state.selected_entity == Some(id);
-            if ui
-                .selectable_label(selected, format!("◇  {name}"))
-                .clicked()
-            {
-                self.state.selected_entity = Some(id);
-            }
-        }
+        let roots: Vec<EntityId> = self.state.scene.roots().map(|e| e.id).collect();
+        for id in roots { hierarchy_node(ui, &mut self.state, id, 0); }
         if self.state.scene.is_empty() {
             ui.weak("Scene is empty. Add an object to begin.");
         }
@@ -412,11 +492,7 @@ impl EditorTabViewer<'_> {
             });
         }
 
-        let selected_transform = self
-            .state
-            .selected_entity
-            .and_then(|id| self.state.scene.get(id))
-            .map(|e| e.transform);
+        let selected_transform = self.state.selected_entity.and_then(|id| self.state.scene.world_transform(id));
         let selected_position = selected_transform.map(|transform| transform.translation);
         let selected_orientation = selected_transform
             .map(|transform| {
@@ -458,16 +534,13 @@ impl EditorTabViewer<'_> {
                     gizmo_basis,
                     pointer,
                 ) {
-                    let initial = self
-                        .state
-                        .scene
-                        .get(id)
-                        .map(|e| match *self.gizmo_mode {
-                            viewport_gizmo::Mode::Move => e.transform.translation,
-                            viewport_gizmo::Mode::Rotate => e.transform.rotation,
-                            viewport_gizmo::Mode::Scale => e.transform.scale,
-                        })
-                        .unwrap_or([0.0; 3]);
+                    self.state.checkpoint();
+                    let initial = self.state.scene.world_transform(id)
+                        .map(|t| match *self.gizmo_mode {
+                            viewport_gizmo::Mode::Move => t.translation,
+                            viewport_gizmo::Mode::Rotate => t.rotation,
+                            viewport_gizmo::Mode::Scale => t.scale,
+                        }).unwrap_or([0.0; 3]);
                     *self.gizmo_drag = Some(GizmoDrag {
                         entity: id,
                         axis,
@@ -485,71 +558,36 @@ impl EditorTabViewer<'_> {
             if let (Some(drag), Some(pointer)) = (*self.gizmo_drag, response.interact_pointer_pos())
             {
                 let delta = pointer - drag.start;
-                if let Some(entity) = self.state.scene.get_mut(drag.entity) {
+                if let Some(mut world) = self.state.scene.world_transform(drag.entity) {
                     let index = drag.axis.index();
                     match *self.gizmo_mode {
                         viewport_gizmo::Mode::Move => {
-                            let local_axis = match drag.axis {
-                                viewport_gizmo::Axis::X => Vec3::X,
-                                viewport_gizmo::Axis::Y => Vec3::Y,
-                                viewport_gizmo::Axis::Z => Vec3::Z,
-                            };
-                            let axis = drag.basis * local_axis;
+                            let axis = drag.basis * match drag.axis { viewport_gizmo::Axis::X => Vec3::X, viewport_gizmo::Axis::Y => Vec3::Y, viewport_gizmo::Axis::Z => Vec3::Z };
                             let origin = Vec3::from_array(drag.initial);
-                            if let (Some(a), Some(b)) = (
-                                viewport_gizmo::project(camera_matrix, rect, origin),
-                                viewport_gizmo::project(
-                                    camera_matrix,
-                                    rect,
-                                    origin + axis * gizmo_length,
-                                ),
-                            ) {
+                            if let (Some(a), Some(b)) = (viewport_gizmo::project(camera_matrix, rect, origin), viewport_gizmo::project(camera_matrix, rect, origin + axis * gizmo_length)) {
                                 let screen_axis = b - a;
-                                let pixels_per_unit =
-                                    screen_axis.length() / gizmo_length.max(0.001);
+                                let pixels_per_unit = screen_axis.length() / gizmo_length.max(0.001);
                                 if pixels_per_unit > 0.01 {
-                                    let amount =
-                                        delta.dot(screen_axis.normalized()) / pixels_per_unit;
-                                    let value = Vec3::from_array(drag.initial) + axis * amount;
-                                    entity.transform.translation = value.to_array();
+                                    let amount = delta.dot(screen_axis.normalized()) / pixels_per_unit;
+                                    world.translation = (origin + axis * amount).to_array();
                                 }
                             }
                         }
                         viewport_gizmo::Mode::Rotate => {
                             let amount = (delta.x - delta.y) * 0.01;
-                            let local_axis = match drag.axis {
-                                viewport_gizmo::Axis::X => Vec3::X,
-                                viewport_gizmo::Axis::Y => Vec3::Y,
-                                viewport_gizmo::Axis::Z => Vec3::Z,
-                            };
-                            let initial_rotation = Quat::from_euler(
-                                EulerRot::XYZ,
-                                drag.initial[0],
-                                drag.initial[1],
-                                drag.initial[2],
-                            );
-                            let delta_rotation =
-                                if *self.gizmo_space == viewport_gizmo::Space::Local {
-                                    Quat::from_axis_angle(local_axis, amount)
-                                } else {
-                                    Quat::from_axis_angle(drag.basis * local_axis, amount)
-                                };
-                            let rotation = if *self.gizmo_space == viewport_gizmo::Space::Local {
-                                initial_rotation * delta_rotation
-                            } else {
-                                delta_rotation * initial_rotation
-                            };
-                            let (x, y, z) = rotation.to_euler(EulerRot::XYZ);
-                            entity.transform.rotation = [x, y, z];
+                            let axis = match drag.axis { viewport_gizmo::Axis::X => Vec3::X, viewport_gizmo::Axis::Y => Vec3::Y, viewport_gizmo::Axis::Z => Vec3::Z };
+                            let initial = Quat::from_euler(EulerRot::XYZ, drag.initial[0], drag.initial[1], drag.initial[2]);
+                            let delta_rotation = if *self.gizmo_space == viewport_gizmo::Space::Local { Quat::from_axis_angle(axis, amount) } else { Quat::from_axis_angle(drag.basis * axis, amount) };
+                            let rotation = if *self.gizmo_space == viewport_gizmo::Space::Local { initial * delta_rotation } else { delta_rotation * initial };
+                            let (x, y, z) = rotation.to_euler(EulerRot::XYZ); world.rotation = [x, y, z];
                         }
                         viewport_gizmo::Mode::Scale => {
                             let mut value = drag.initial;
-                            value[index] = (drag.initial[index]
-                                * (1.0 + (delta.x - delta.y) * 0.01))
-                                .max(0.01);
-                            entity.transform.scale = value;
+                            value[index] = (drag.initial[index] * (1.0 + (delta.x - delta.y) * 0.01)).max(0.01);
+                            world.scale = value;
                         }
                     }
+                    let _ = self.state.scene.set_world_transform(drag.entity, world);
                 }
                 ui.ctx().request_repaint();
             }
@@ -595,7 +633,7 @@ impl EditorTabViewer<'_> {
 
         if response.clicked_by(egui::PointerButton::Primary) && self.gizmo_drag.is_none() {
             if let Some(pointer_pos) = response.interact_pointer_pos() {
-                self.state.selected_entity = pick_entity(
+                let picked = pick_entity(
                     &self.state.scene,
                     pointer_pos,
                     rect,
@@ -604,6 +642,13 @@ impl EditorTabViewer<'_> {
                     *self.camera_distance,
                     *self.camera_target,
                 );
+                if let Some(id) = picked {
+                    let additive = ui.input(|input| input.modifiers.ctrl || input.modifiers.command);
+                    self.state.select(id, additive);
+                } else {
+                    self.state.selected_entities.clear();
+                    self.state.selected_entity = None;
+                }
             }
         }
 
@@ -675,6 +720,7 @@ impl EditorTabViewer<'_> {
             ui.weak("Select an entity in the Hierarchy.");
             return;
         };
+        let before = self.state.scene.clone();
         let Some(entity) = self.state.scene.get_mut(selected) else {
             ui.weak("Selected entity no longer exists.");
             return;
@@ -691,6 +737,10 @@ impl EditorTabViewer<'_> {
                 vector3_editor(ui, "Rotation", &mut entity.transform.rotation);
                 vector3_editor(ui, "Scale", &mut entity.transform.scale);
             });
+        if before != self.state.scene {
+            self.state.undo_stack.push(before);
+            self.state.redo_stack.clear();
+        }
 
         egui::CollapsingHeader::new("Components")
             .default_open(true)
@@ -743,6 +793,35 @@ impl EditorTabViewer<'_> {
                 }
             });
     }
+}
+
+fn hierarchy_node(ui: &mut Ui, state: &mut EditorState, id: EntityId, depth: usize) {
+    let Some(entity) = state.scene.get(id) else { return; };
+    let name = entity.name.clone();
+    let has_children = state.scene.children(id).next().is_some();
+    let selected = state.selected_entities.contains(&id);
+    let response = ui.dnd_drag_source(Id::new(("hierarchy_entity", id.0)), id, |ui| {
+        ui.horizontal(|ui| {
+            ui.add_space(depth as f32 * 14.0);
+            ui.label(if has_children { "▸" } else { "◇" });
+            ui.selectable_label(selected, format!("{name}  ({})", id.0));
+        });
+    });
+    if response.response.clicked() {
+        let additive = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
+        state.select(id, additive);
+    }
+    if let Some(dropped) = response.response.dnd_release_payload::<EntityId>() {
+        if *dropped != id {
+            let before = state.scene.clone();
+            if state.scene.set_parent(*dropped, Some(id), true).is_ok() {
+                state.undo_stack.push(before); state.redo_stack.clear();
+                state.console_lines.push(format!("Reparented {} under {}", dropped.0, id.0));
+            }
+        }
+    }
+    let children: Vec<EntityId> = state.scene.children(id).map(|e| e.id).collect();
+    for child in children { hierarchy_node(ui, state, child, depth + 1); }
 }
 
 fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
@@ -803,13 +882,39 @@ mod tests {
         let state = EditorState::default();
         let selected = state.selected_entity.expect("default entity is selected");
         assert_eq!(
-            state
-                .scene
-                .get(selected)
-                .expect("selected entity exists")
-                .name,
+            state.scene.get(selected).expect("selected entity exists").name,
             "Cube"
         );
         assert_eq!(state.scene.len(), 3);
+    }
+
+    #[test]
+    fn undo_and_redo_restore_scene_snapshots() {
+        let mut state = EditorState::default();
+        let before = state.scene.len();
+        state.checkpoint();
+        state.scene.spawn_cube("Added");
+        state.undo();
+        assert_eq!(state.scene.len(), before);
+        state.redo();
+        assert_eq!(state.scene.len(), before + 1);
+    }
+
+    #[test]
+    fn grouping_selection_creates_parent_without_moving_objects() {
+        let mut state = EditorState::default();
+        let first = state.scene.spawn_cube("First");
+        let second = state.scene.spawn_cube("Second");
+        state.scene.get_mut(first).unwrap().transform.translation = [2.0, 0.0, 0.0];
+        state.scene.get_mut(second).unwrap().transform.translation = [-2.0, 0.0, 0.0];
+        state.selected_entities = vec![first, second];
+        let first_world = state.scene.world_matrix(first).unwrap();
+        let second_world = state.scene.world_matrix(second).unwrap();
+        state.group_selection();
+        let group = state.selected_entity.unwrap();
+        assert_eq!(state.scene.get(first).unwrap().parent, Some(group));
+        assert_eq!(state.scene.get(second).unwrap().parent, Some(group));
+        assert_eq!(state.scene.world_matrix(first).unwrap(), first_world);
+        assert_eq!(state.scene.world_matrix(second).unwrap(), second_world);
     }
 }
