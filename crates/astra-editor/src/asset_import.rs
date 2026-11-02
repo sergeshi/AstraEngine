@@ -58,17 +58,19 @@ fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let (document, buffers, _images) = gltf::import(path).map_err(|error| format!("glTF import failed: {error}"))?;
     let mut positions = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
+    let mut normals = Vec::<[f32; 3]>::new();
+    let mut uvs = Vec::<[f32; 2]>::new();
 
     if let Some(scene) = document.default_scene().or_else(|| document.scenes().next()) {
         for node in scene.nodes() {
-            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices)?;
+            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs)?;
         }
     } else {
         for mesh in document.meshes() {
-            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices)?;
+            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs)?;
         }
     }
-    MeshGeometry::new(positions, indices, source).map_err(str::to_owned)
+    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
 }
 
 fn append_gltf_node(
@@ -77,14 +79,16 @@ fn append_gltf_node(
     buffers: &[gltf::buffer::Data],
     positions: &mut Vec<[f32; 3]>,
     indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    uvs: &mut Vec<[f32; 2]>,
 ) -> Result<(), String> {
     let local_transform = glam::Mat4::from_cols_array_2d(&node.transform().matrix());
     let world_transform = parent_transform * local_transform;
     if let Some(mesh) = node.mesh() {
-        append_gltf_mesh(mesh, world_transform, buffers, positions, indices)?;
+        append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs)?;
     }
     for child in node.children() {
-        append_gltf_node(child, world_transform, buffers, positions, indices)?;
+        append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs)?;
     }
     Ok(())
 }
@@ -95,6 +99,8 @@ fn append_gltf_mesh(
     buffers: &[gltf::buffer::Data],
     positions: &mut Vec<[f32; 3]>,
     indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    uvs: &mut Vec<[f32; 2]>,
 ) -> Result<(), String> {
     for primitive in mesh.primitives() {
         if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
@@ -110,9 +116,18 @@ fn append_gltf_mesh(
         if primitive_indices.len() % 3 != 0 || primitive_indices.iter().any(|index| *index as usize >= primitive_positions.len()) {
             return Err("glTF triangle primitive has invalid indices".to_owned());
         }
+        let primitive_normals: Vec<[f32; 3]> = reader.read_normals()
+            .map(|values| values.map(|n| transform.inverse().transpose().transform_vector3(glam::Vec3::from_array(n)).normalize_or_zero().to_array()).collect())
+            .unwrap_or_default();
+        let primitive_uvs: Vec<[f32; 2]> = reader.read_tex_coords(0)
+            .map(|values| values.into_f32().collect())
+            .unwrap_or_default();
         let base = positions.len() as u32;
+        let vertex_count = primitive_positions.len();
         positions.extend(primitive_positions);
         indices.extend(primitive_indices.into_iter().map(|index| base + index));
+        if primitive_normals.len() == vertex_count { normals.extend(primitive_normals); } else { normals.clear(); }
+        if primitive_uvs.len() == vertex_count { uvs.extend(primitive_uvs); } else { uvs.clear(); }
     }
     Ok(())
 }
