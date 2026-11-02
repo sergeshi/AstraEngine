@@ -477,7 +477,7 @@ mod tests {
         let loaded = ProjectDocument::load(&path).unwrap();
         let imported = loaded.active_scene().unwrap().iter()
             .find(|entity| entity.name == "Imported").unwrap();
-        assert!(matches!(imported.mesh_component, Some(MeshComponent::Imported(_))));
+        assert!(matches!(imported.mesh_component.as_ref(), Some(MeshComponent::Imported(_))));
         let _ = fs::remove_file(&path);
     }
 
