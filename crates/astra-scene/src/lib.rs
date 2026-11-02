@@ -112,6 +112,9 @@ pub struct Entity {
     pub name: String,
     pub parent: Option<EntityId>,
     pub transform: Transform,
+    /// Local-space pivot offset used by editor transform tools.
+    #[serde(default)]
+    pub pivot: [f32; 3],
     #[serde(default)]
     pub mesh: Option<PrimitiveMesh>,
 }
@@ -126,7 +129,7 @@ impl Scene {
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
         self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
-        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), mesh: None });
+        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None });
         id
     }
     pub fn spawn_primitive(&mut self, name: impl Into<String>, mesh: PrimitiveMesh) -> EntityId {
@@ -243,6 +246,7 @@ impl Scene {
             remap.insert(*old, new_id);
             let new = self.get_mut(new_id).expect("new entity exists");
             new.transform = original.transform;
+            new.pivot = original.pivot;
             new.mesh = original.mesh;
         }
         for old in &ids {
