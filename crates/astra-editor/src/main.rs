@@ -1297,6 +1297,21 @@ impl EditorTabViewer<'_> {
                 if entity.material.is_none() && ui.button("＋ Create Material").clicked() {
                     entity.material = Some(astra_scene::Material::default());
                 }
+                let selected_material = entity.material_asset_id.clone().unwrap_or_default();
+                let mut assign_material: Option<(String, astra_scene::Material)> = None;
+                egui::ComboBox::from_id_salt("material_asset_assignment")
+                    .selected_text(if selected_material.is_empty() { "Material Asset: Inline".to_owned() } else { self.project.materials.iter().find(|a| a.id == selected_material).map(|a| a.name.clone()).unwrap_or_else(|| "Missing Material Asset".to_owned()) })
+                    .show_ui(ui, |ui| {
+                        if ui.selectable_label(selected_material.is_empty(), "Inline Material").clicked() { entity.material_asset_id = None; }
+                        for asset in &self.project.materials {
+                            if ui.selectable_label(selected_material == asset.id, &asset.name).clicked() {
+                                assign_material = Some((asset.id.clone(), asset.material.clone()));
+                            }
+                        }
+                    });
+                if let Some((id, material)) = assign_material {
+                    entity.material = Some(material); entity.material_asset_id = Some(id);
+                }
                 let remove_material = if let Some(material) = entity.material.as_mut() {
                     ui.label("Base Color");
                     for (index, channel) in ["R", "G", "B", "A"].into_iter().enumerate() {
@@ -1304,17 +1319,6 @@ impl EditorTabViewer<'_> {
                     }
                     ui.add(egui::Slider::new(&mut material.metallic, 0.0..=1.0).text("Metallic"));
                     ui.add(egui::Slider::new(&mut material.roughness, 0.0..=1.0).text("Roughness"));
-                    let selected_material = entity.material_asset_id.clone().unwrap_or_default();
-                    egui::ComboBox::from_id_salt("material_asset_assignment")
-                        .selected_text(if selected_material.is_empty() { "Material Asset: Inline".to_owned() } else { self.project.materials.iter().find(|a| a.id == selected_material).map(|a| a.name.clone()).unwrap_or_else(|| "Missing Material Asset".to_owned()) })
-                        .show_ui(ui, |ui| {
-                            if ui.selectable_label(selected_material.is_empty(), "Inline Material").clicked() { entity.material_asset_id = None; }
-                            for asset in &self.project.materials {
-                                if ui.selectable_label(selected_material == asset.id, &asset.name).clicked() {
-                                    entity.material = Some(asset.material.clone()); entity.material_asset_id = Some(asset.id.clone());
-                                }
-                            }
-                        });
                     let selected_texture = material.base_color_texture.clone().unwrap_or_default();
                     egui::ComboBox::from_id_salt("material_base_color_texture")
                         .selected_text(if selected_texture.is_empty() { "Base Color Texture: None".to_owned() } else { format!("Base Color: {}", selected_texture) })
