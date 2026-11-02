@@ -324,8 +324,12 @@ impl AstraEditor {
                 }
                 let vertex_count = geometry.positions.len();
                 let triangle_count = geometry.indices.len() / 3;
-                let default_name = path.file_stem().and_then(|value| value.to_str())
-                    .unwrap_or("Imported Mesh").to_owned();
+                let default_name = path.file_stem().and_then(|value| value.to_str()).unwrap_or("Imported Mesh").to_owned();
+                let imported_material_asset_id = imported_material.as_ref().map(|material| {
+                    let id = format!("material-import-{:x}-{}", std::process::id(), self.project.materials.len() + 1);
+                    self.project.materials.push(project::MaterialAsset { id: id.clone(), name: format!("{} Material", default_name), material: material.clone() });
+                    id
+                });
 
                 self.state.checkpoint();
                 let id = if let Some(id) = self.state.selected_entity
@@ -337,7 +341,10 @@ impl AstraEditor {
                 if let Some(entity) = self.state.scene.get_mut(id) {
                     entity.mesh = None;
                     entity.mesh_component = Some(MeshComponent::Imported(geometry));
-                    if imported_material.is_some() { entity.material = imported_material; }
+                    if imported_material.is_some() {
+                        entity.material = imported_material;
+                        entity.material_asset_id = imported_material_asset_id;
+                    }
                 }
                 self.state.select(id, false);
                 self.project_dirty = true;
