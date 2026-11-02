@@ -276,6 +276,7 @@ impl AstraEditor {
         match asset_import::load_mesh(&path) {
             Ok(geometry) => {
                 let source = geometry.source.clone();
+                let imported_material = geometry.imported_material.clone();
                 let vertex_count = geometry.positions.len();
                 let triangle_count = geometry.indices.len() / 3;
                 let default_name = path.file_stem().and_then(|value| value.to_str())
@@ -291,6 +292,7 @@ impl AstraEditor {
                 if let Some(entity) = self.state.scene.get_mut(id) {
                     entity.mesh = None;
                     entity.mesh_component = Some(MeshComponent::Imported(geometry));
+                    if imported_material.is_some() { entity.material = imported_material; }
                 }
                 self.state.select(id, false);
                 self.project_dirty = true;
