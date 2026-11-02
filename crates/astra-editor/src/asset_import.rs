@@ -1,5 +1,5 @@
 //! OBJ, glTF, GLB and FBX mesh import. Imported geometry is embedded in the .astra scene.
-use astra_scene::MeshGeometry;
+use astra_scene::{Material, MeshGeometry};
 use std::{fs, path::Path};
 
 pub fn load_mesh(path: &Path) -> Result<MeshGeometry, String> {
@@ -90,7 +90,9 @@ fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
     if positions.is_empty() || indices.is_empty() { return Err("OBJ contains no triangle mesh geometry".to_owned()); }
     if !has_all_uvs { uvs.clear(); }
     if !has_all_normals { normals.clear(); }
-    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
+    let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
+    geometry.imported_material = imported_material;
+    Ok(geometry)
 }
 
 fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
@@ -99,14 +101,15 @@ fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let mut indices = Vec::<u32>::new();
     let mut normals = Vec::<[f32; 3]>::new();
     let mut uvs = Vec::<[f32; 2]>::new();
+    let mut imported_material = None;
 
     if let Some(scene) = document.default_scene().or_else(|| document.scenes().next()) {
         for node in scene.nodes() {
-            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs)?;
+            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material)?;
         }
     } else {
         for mesh in document.meshes() {
-            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs)?;
+            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, imported_material)?;
         }
     }
     MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
@@ -120,6 +123,7 @@ fn append_gltf_node(
     indices: &mut Vec<u32>,
     normals: &mut Vec<[f32; 3]>,
     uvs: &mut Vec<[f32; 2]>,
+    imported_material: &mut Option<Material>,
 ) -> Result<(), String> {
     let local_transform = glam::Mat4::from_cols_array_2d(&node.transform().matrix());
     let world_transform = parent_transform * local_transform;
@@ -127,7 +131,7 @@ fn append_gltf_node(
         append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs)?;
     }
     for child in node.children() {
-        append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs)?;
+        append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs, imported_material)?;
     }
     Ok(())
 }
@@ -140,9 +144,14 @@ fn append_gltf_mesh(
     indices: &mut Vec<u32>,
     normals: &mut Vec<[f32; 3]>,
     uvs: &mut Vec<[f32; 2]>,
+    imported_material: &mut Option<Material>,
 ) -> Result<(), String> {
     for primitive in mesh.primitives() {
         if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
+        if imported_material.is_none() {
+            let pbr = primitive.material().pbr_metallic_roughness();
+            *imported_material = Some(Material { base_color: pbr.base_color_factor(), metallic: pbr.metallic_factor(), roughness: pbr.roughness_factor() });
+        }
         let reader = primitive.reader(|buffer| Some(buffers[buffer.index()].0.as_slice()));
         let primitive_positions: Vec<[f32; 3]> = reader.read_positions()
             .ok_or_else(|| format!("glTF mesh '{}' has no POSITION attribute", mesh.name().unwrap_or("unnamed")))?
