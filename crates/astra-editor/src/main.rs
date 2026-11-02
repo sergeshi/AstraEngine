@@ -1,3 +1,4 @@
+mod asset_import;
 mod gpu_viewport;
 mod project;
 mod viewport_camera;
@@ -5,7 +6,7 @@ mod viewport_gizmo;
 mod viewport_picking;
 
 use astra_core::EngineInfo;
-use astra_scene::{EntityId, PrimitiveMesh, Scene};
+use astra_scene::{EntityId, MeshComponent, PrimitiveMesh, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use glam::{EulerRot, Quat, Vec3};
@@ -265,6 +266,40 @@ impl AstraEditor {
 
     fn log(&mut self, message: impl Into<String>) {
         self.state.console_lines.push(message.into());
+    }
+
+    fn import_mesh(&mut self) {
+        let Some(path) = rfd::FileDialog::new()
+            .add_filter("3D Models", &["obj", "gltf", "glb"])
+            .pick_file() else { return; };
+
+        match asset_import::load_mesh(&path) {
+            Ok(geometry) => {
+                let source = geometry.source.clone();
+                let vertex_count = geometry.positions.len();
+                let triangle_count = geometry.indices.len() / 3;
+                let default_name = path.file_stem().and_then(|value| value.to_str())
+                    .unwrap_or("Imported Mesh").to_owned();
+
+                self.state.checkpoint();
+                let id = if let Some(id) = self.state.selected_entity
+                    .filter(|id| self.state.scene.get(*id).is_some()) {
+                    id
+                } else {
+                    self.state.scene.spawn(default_name)
+                };
+                if let Some(entity) = self.state.scene.get_mut(id) {
+                    entity.mesh = None;
+                    entity.mesh_component = Some(MeshComponent::Imported(geometry));
+                }
+                self.state.select(id, false);
+                self.project_dirty = true;
+                self.log(format!(
+                    "Imported {source}: {vertex_count} vertices, {triangle_count} triangles. Geometry is embedded in .astra."
+                ));
+            }
+            Err(error) => self.log(format!("Mesh import failed: {error}")),
+        }
     }
 
     fn project_snapshot(&self) -> ProjectDocument {
@@ -631,6 +666,7 @@ impl AstraEditor {
                 if ui.button("＋ New").clicked() { self.request_new_project(); }
                 if ui.button("Open").clicked() { self.request_open_project(); }
                 if ui.button("Save").clicked() { self.save_project(); }
+                if ui.button("Import Mesh").clicked() { self.import_mesh(); }
                 ui.menu_button("＋ Primitive", |ui| {
                     for (label, mesh) in [
                         ("Cube", PrimitiveMesh::Cube),
@@ -1184,9 +1220,17 @@ impl EditorTabViewer<'_> {
         egui::CollapsingHeader::new("Mesh / Bounds")
             .default_open(true)
             .show(ui, |ui| {
-                if let Some(mesh) = entity.mesh {
-                    ui.label(format!("Primitive: {mesh:?}"));
-                    let (min, max) = mesh.local_bounds();
+                let mesh_bounds = entity.mesh_component.as_ref().map(MeshComponent::local_bounds)
+                    .or_else(|| entity.mesh.map(PrimitiveMesh::local_bounds));
+                if let Some((min, max)) = mesh_bounds {
+                    match entity.mesh_component.as_ref() {
+                        Some(MeshComponent::Primitive(mesh)) => ui.label(format!("Primitive: {mesh:?}")),
+                        Some(MeshComponent::Imported(geometry)) => {
+                            ui.label(format!("Imported: {}", geometry.source));
+                            ui.label(format!("{} vertices · {} triangles", geometry.positions.len(), geometry.indices.len() / 3));
+                        }
+                        None => { ui.label(format!("Legacy Primitive: {:?}", entity.mesh)); }
+                    };
                     ui.label(format!("Local Min: [{:.2}, {:.2}, {:.2}]", min[0], min[1], min[2]));
                     ui.label(format!("Local Max: [{:.2}, {:.2}, {:.2}]", max[0], max[1], max[2]));
                     if let Some(matrix) = selected_world_matrix {
