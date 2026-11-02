@@ -1430,8 +1430,10 @@ impl EditorTabViewer<'_> {
                 ui.strong("Materials");
                 if ui.button("＋ Create Material Asset").clicked() {
                     let material = self.state.selected_entity.and_then(|id| self.state.scene.get(id)).and_then(|e| e.material.clone()).unwrap_or_default();
-                    let id = format!("material-{:x}-{}", std::process::id(), self.project.materials.len() + 1);
-                    self.project.materials.push(project::MaterialAsset { id, name: format!("Material {}", self.project.materials.len() + 1), material });
+                    let index = self.project.materials.len() + 1;
+                    let id = format!("material-{:x}-{index}", std::process::id());
+                    let name = format!("Material {index}");
+                    self.project.materials.push(project::MaterialAsset { id, name, material });
                     *self.project_dirty = true;
                 }
             });
