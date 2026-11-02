@@ -272,7 +272,8 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
         let _ = fs::remove_file(&temp);
         return Err(error);
     }
-    if had_original { let _ = fs::remove_file(backup); }
+    // Keep the previous version as a persistent recovery point.
+    // It is replaced atomically on the next successful save.
     Ok(())
 }
 
