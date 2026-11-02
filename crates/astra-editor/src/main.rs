@@ -211,6 +211,7 @@ impl AstraEditor {
         let mut project: ProjectDocument = cc.storage
             .and_then(|storage| eframe::get_value(storage, PROJECT_STATE_KEY))
             .unwrap_or_else(|| ProjectDocument::new("Untitled"));
+        project.normalize_mesh_attributes();
         if let Some(scene) = project.active_scene() {
             state.scene = scene.clone();
         } else if let Some(scene) = project.active_scene_mut() {
