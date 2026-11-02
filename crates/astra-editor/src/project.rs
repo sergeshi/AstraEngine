@@ -120,6 +120,10 @@ impl ProjectDocument {
         }
     }
 
+    pub fn normalize_mesh_attributes(&mut self) {
+        for entry in &mut self.scenes { normalize_legacy_mesh_attributes(&mut entry.scene); }
+    }
+
     pub fn active_scene(&self) -> Option<&Scene> {
         self.scenes.iter().find(|scene| scene.id == self.active_scene_id).map(|scene| &scene.scene)
     }
@@ -302,7 +306,7 @@ impl ProjectDocument {
 
         let mut project: Self = serde_json::from_value(value)
             .map_err(|error| ProjectError::Parse(error.to_string()))?;
-        for entry in &mut project.scenes { normalize_legacy_mesh_attributes(&mut entry.scene); }
+        project.normalize_mesh_attributes();
         if project.format_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(project.format_version));
         }
