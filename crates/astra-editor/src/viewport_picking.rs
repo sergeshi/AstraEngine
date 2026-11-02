@@ -40,9 +40,7 @@ pub fn pick_entity(
     let mut closest: Option<(f32, EntityId)> = None;
 
     for entity in scene.iter() {
-        if entity.mesh != Some(PrimitiveMesh::Cube) {
-            continue;
-        }
+        let Some(mesh) = entity.mesh else { continue; };
 
         let Some(transform) = scene.world_matrix(entity.id) else {
             continue;
@@ -56,7 +54,8 @@ pub fn pick_entity(
         let local_origin = inverse_transform.transform_point3(near);
         // Do not normalize this vector: keeping its scale preserves the world-ray parameter.
         let local_direction = inverse_transform.transform_vector3(ray_direction);
-        let Some(hit_distance) = intersect_unit_cube(local_origin, local_direction) else {
+        let (bounds_min, bounds_max) = mesh.local_bounds();
+        let Some(hit_distance) = intersect_aabb(local_origin, local_direction, Vec3::from_array(bounds_min), Vec3::from_array(bounds_max)) else {
             continue;
         };
 
@@ -78,8 +77,8 @@ fn unproject(inverse_view_projection: Mat4, point: Vec4) -> Option<Vec3> {
     result.is_finite().then_some(result)
 }
 
-/// Slab intersection against the cube's local-space bounds [-1, 1].
-fn intersect_unit_cube(origin: Vec3, direction: Vec3) -> Option<f32> {
+/// Slab intersection against a primitive's local-space bounding box.
+fn intersect_aabb(origin: Vec3, direction: Vec3, min: Vec3, max: Vec3) -> Option<f32> {
     let mut near = 0.0_f32;
     let mut far = f32::INFINITY;
 
@@ -88,14 +87,14 @@ fn intersect_unit_cube(origin: Vec3, direction: Vec3) -> Option<f32> {
         let direction_axis = direction[axis];
 
         if direction_axis.abs() < 1.0e-7 {
-            if !(-1.0..=1.0).contains(&origin_axis) {
+            if origin_axis < min[axis] || origin_axis > max[axis] {
                 return None;
             }
             continue;
         }
 
-        let first = (-1.0 - origin_axis) / direction_axis;
-        let second = (1.0 - origin_axis) / direction_axis;
+        let first = (min[axis] - origin_axis) / direction_axis;
+        let second = (max[axis] - origin_axis) / direction_axis;
         near = near.max(first.min(second));
         far = far.min(first.max(second));
 
