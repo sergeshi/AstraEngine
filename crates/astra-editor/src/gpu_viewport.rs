@@ -10,6 +10,7 @@ use glam::Vec3;
 struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
+    normal: [f32; 3],
 }
 
 pub struct GpuViewport {
@@ -54,6 +55,8 @@ impl GpuViewport {
             gl.vertex_attrib_pointer_f32(0, 3, glow::FLOAT, false, stride, 0);
             gl.enable_vertex_attrib_array(1);
             gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, stride, 12);
+            gl.enable_vertex_attrib_array(2);
+            gl.vertex_attrib_pointer_f32(2, 3, glow::FLOAT, false, stride, 24);
             gl.bind_vertex_array(None);
             gl.bind_buffer(glow::ARRAY_BUFFER, None);
 
@@ -209,18 +212,23 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
                 PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
             }
         };
-        for point in points {
+        let geometry_normals = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g.normals.as_slice()), _ => None });
+        let geometry_indices = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g.indices.as_slice()), _ => None });
+        for (corner, point) in points.iter().enumerate() {
             let pivot = Vec3::from_array(entity.pivot);
-            let position = transform.transform_point3(Vec3::from_array(point) - pivot);
-            vertices.push(Vertex { position: position.to_array(), color });
+            let position = transform.transform_point3(Vec3::from_array(*point) - pivot);
+            let normal_index = geometry_indices.and_then(|ids| ids.get(corner)).copied().unwrap_or(corner as u32) as usize;
+            let local_normal = geometry_normals.and_then(|ns| ns.get(normal_index)).copied().unwrap_or([0.0, 1.0, 0.0]);
+            let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
+            vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array() });
         }
     }
     vertices
 }
 
 fn push_line(vertices: &mut Vec<Vertex>, a: [f32; 3], b: [f32; 3], color: [f32; 3]) {
-    vertices.push(Vertex { position: a, color });
-    vertices.push(Vertex { position: b, color });
+    vertices.push(Vertex { position: a, color, normal: [0.0, 1.0, 0.0] });
+    vertices.push(Vertex { position: b, color, normal: [0.0, 1.0, 0.0] });
 }
 
 fn build_line_vertex_count() -> i32 {
@@ -231,18 +239,23 @@ fn build_line_vertex_count() -> i32 {
 const VERTEX_SHADER: &str = r#"#version 330 core
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_color;
+layout (location = 2) in vec3 a_normal;
 uniform mat4 u_view_projection;
 out vec3 v_color;
+out vec3 v_normal;
 void main() {
     v_color = a_color;
+    v_normal = a_normal;
     gl_Position = u_view_projection * vec4(a_position, 1.0);
 }
 "#;
 
 const FRAGMENT_SHADER: &str = r#"#version 330 core
 in vec3 v_color;
+in vec3 v_normal;
 out vec4 out_color;
 void main() {
-    out_color = vec4(v_color, 1.0);
+    float diffuse = max(dot(normalize(v_normal), normalize(vec3(0.45, 0.82, 0.36))), 0.0);
+    out_color = vec4(v_color * (0.28 + diffuse * 0.72), 1.0);
 }
 "#;
