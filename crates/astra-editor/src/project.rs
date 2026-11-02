@@ -56,7 +56,14 @@ impl std::fmt::Display for ProjectError {
             Self::Io(message) => write!(f, "I/O error: {message}"),
             Self::Parse(message) => write!(f, "Invalid project file: {message}"),
             Self::UnsupportedVersion(version) => write!(f, "Project format version {version} is newer than supported version {CURRENT_FORMAT_VERSION}"),
-            Self::Invalid(issues) => write!(f, "Project integrity check failed ({} issue(s))", issues.len()),
+            Self::Invalid(issues) => {
+                write!(f, "Project integrity check failed: ")?;
+                for (index, issue) in issues.iter().enumerate() {
+                    if index > 0 { write!(f, "; ")?; }
+                    write!(f, "{}: {}", issue.location, issue.message)?;
+                }
+                Ok(())
+            },
         }
     }
 }
