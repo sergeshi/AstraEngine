@@ -331,6 +331,8 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
                 uvs.push([uv.x as f32, uv.y as f32]);
             }
         }
+        if !mesh.vertex_normal.exists { normals.clear(); }
+        if !mesh.vertex_uv.exists { uvs.clear(); }
     }
     if indices.is_empty() { return Err("FBX file contains no triangle mesh geometry".to_owned()); }
     let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
