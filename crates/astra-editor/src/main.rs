@@ -466,8 +466,8 @@ impl EditorTabViewer<'_> {
 
         // A dedicated drop target makes moving an entity back to the scene root explicit.
         let (root_rect, root_response) = ui.allocate_exact_size(
-            egui::vec2(ui.available_width(), 28.0),
-            Sense::hover(),
+            egui::vec2(ui.available_width(), 36.0),
+            Sense::click_and_drag(),
         );
         let root_fill = if root_response.hovered() {
             ui.visuals().widgets.active.bg_fill
@@ -832,7 +832,7 @@ fn hierarchy_node(ui: &mut Ui, state: &mut EditorState, id: EntityId, depth: usi
             ui.selectable_label(selected, format!("{name}  ({})", id.0))
         }).inner
     });
-    if drag.inner.clicked() {
+    if drag.response.clicked() || drag.inner.clicked() {
         let additive = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
         state.select(id, additive);
     }
