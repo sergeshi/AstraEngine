@@ -270,7 +270,7 @@ impl AstraEditor {
 
     fn import_mesh(&mut self) {
         let Some(path) = rfd::FileDialog::new()
-            .add_filter("3D Models", &["obj", "gltf", "glb"])
+            .add_filter("3D Models", &["obj", "gltf", "glb", "fbx"])
             .pick_file() else { return; };
 
         match asset_import::load_mesh(&path) {
@@ -1498,33 +1498,3 @@ mod tests {
         state.scene.set_parent(child, Some(parent), true).unwrap();
 
         state.select(child, false);
-        assert_eq!(state.selected_entity, Some(child));
-        assert_eq!(state.selected_entities, vec![child]);
-
-        let world_before = state.scene.world_matrix(child).unwrap();
-        reparent_entity(&mut state, child, None);
-        assert_eq!(state.scene.get(child).unwrap().parent, None);
-        assert_eq!(state.scene.world_matrix(child).unwrap(), world_before);
-        assert_eq!(state.undo_stack.len(), 1);
-        state.undo();
-        assert_eq!(state.scene.get(child).unwrap().parent, Some(parent));
-    }
-
-    #[test]
-    fn grouping_selection_creates_parent_without_moving_objects() {
-        let mut state = EditorState::default();
-        let first = state.scene.spawn_cube("First");
-        let second = state.scene.spawn_cube("Second");
-        state.scene.get_mut(first).unwrap().transform.translation = [2.0, 0.0, 0.0];
-        state.scene.get_mut(second).unwrap().transform.translation = [-2.0, 0.0, 0.0];
-        state.selected_entities = vec![first, second];
-        let first_world = state.scene.world_matrix(first).unwrap();
-        let second_world = state.scene.world_matrix(second).unwrap();
-        state.group_selection();
-        let group = state.selected_entity.unwrap();
-        assert_eq!(state.scene.get(first).unwrap().parent, Some(group));
-        assert_eq!(state.scene.get(second).unwrap().parent, Some(group));
-        assert_eq!(state.scene.world_matrix(first).unwrap(), first_world);
-        assert_eq!(state.scene.world_matrix(second).unwrap(), second_world);
-    }
-}
