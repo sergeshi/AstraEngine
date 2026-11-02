@@ -107,6 +107,7 @@ impl ProjectDocument {
         self.scenes.iter_mut().find(|scene| scene.id == self.active_scene_id).map(|scene| &mut scene.scene)
     }
 
+    #[cfg(test)]
     pub fn add_scene(&mut self, name: impl Into<String>) -> String {
         let id = new_id("scene");
         self.scenes.push(SceneDocument { id: id.clone(), name: name.into(), scene: Scene::new() });
