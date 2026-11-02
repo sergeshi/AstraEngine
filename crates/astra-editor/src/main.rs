@@ -1152,7 +1152,7 @@ impl EditorTabViewer<'_> {
             ui.painter().add(egui::PaintCallback {
                 rect,
                 callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
-                    if let Ok(renderer) = renderer.lock() {
+                    if let Ok(mut renderer) = renderer.lock() {
                         let viewport = info.viewport_in_pixels();
                         renderer.paint(
                             painter.gl(),
