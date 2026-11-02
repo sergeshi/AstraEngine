@@ -25,6 +25,8 @@ pub struct GpuViewport {
     line_vertices: i32,
     base_color_texture: glow::UniformLocation,
     has_texture: glow::UniformLocation,
+    metallic_roughness_texture: glow::UniformLocation,
+    has_metallic_roughness_texture: glow::UniformLocation,
     textures: HashMap<String, glow::Texture>,
 }
 
@@ -76,6 +78,8 @@ impl GpuViewport {
             let view_projection = gl.get_uniform_location(program, "u_view_projection").ok_or_else(|| "Missing u_view_projection uniform".to_owned())?;
             let base_color_texture = gl.get_uniform_location(program, "u_base_color_texture").ok_or_else(|| "Missing u_base_color_texture uniform".to_owned())?;
             let has_texture = gl.get_uniform_location(program, "u_has_texture").ok_or_else(|| "Missing u_has_texture uniform".to_owned())?;
+            let metallic_roughness_texture = gl.get_uniform_location(program, "u_metallic_roughness_texture").ok_or_else(|| "Missing u_metallic_roughness_texture uniform".to_owned())?;
+            let has_metallic_roughness_texture = gl.get_uniform_location(program, "u_has_metallic_roughness_texture").ok_or_else(|| "Missing u_has_metallic_roughness_texture uniform".to_owned())?;
 
             Ok(Self {
                 program,
@@ -85,6 +89,8 @@ impl GpuViewport {
                 line_vertices: build_line_vertex_count(),
                 base_color_texture,
                 has_texture,
+                metallic_roughness_texture,
+                has_metallic_roughness_texture,
                 textures: HashMap::new(),
             })
         }
@@ -114,6 +120,8 @@ impl GpuViewport {
             gl.uniform_matrix_4_f32_slice(Some(&self.view_projection), false, &matrix.to_cols_array());
             gl.uniform_1_i32(Some(&self.base_color_texture), 0);
             gl.uniform_1_i32(Some(&self.has_texture), 0);
+            gl.uniform_1_i32(Some(&self.metallic_roughness_texture), 1);
+            gl.uniform_1_i32(Some(&self.has_metallic_roughness_texture), 0);
             gl.bind_vertex_array(Some(self.vertex_array));
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
             upload_vertices(gl, &grid);
@@ -122,17 +130,24 @@ impl GpuViewport {
                 let vertices = build_entity_vertices(scene, entity.id, selected_entity);
                 if vertices.is_empty() { continue; }
                 upload_vertices(gl, &vertices);
-                let texture_path = if selected_entity == Some(entity.id) { None } else {
-                    entity.material.as_ref().and_then(|m| m.base_color_texture.as_deref())
-                };
-                let texture = texture_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
+                let material = entity.material.as_ref();
+                let base_color_path = if selected_entity == Some(entity.id) { None } else { material.and_then(|m| m.base_color_texture.as_deref()) };
+                let metallic_roughness_path = if selected_entity == Some(entity.id) { None } else { material.and_then(|m| m.metallic_roughness_texture.as_deref()) };
+                let base_color = base_color_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
+                let metallic_roughness = metallic_roughness_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
                 gl.active_texture(glow::TEXTURE0);
-                let has_texture = texture.is_some();
-                gl.bind_texture(glow::TEXTURE_2D, texture);
-                gl.uniform_1_i32(Some(&self.has_texture), if has_texture { 1 } else { 0 });
+                gl.bind_texture(glow::TEXTURE_2D, base_color);
+                gl.uniform_1_i32(Some(&self.has_texture), if base_color.is_some() { 1 } else { 0 });
+                gl.active_texture(glow::TEXTURE1);
+                gl.bind_texture(glow::TEXTURE_2D, metallic_roughness);
+                gl.uniform_1_i32(Some(&self.has_metallic_roughness_texture), if metallic_roughness.is_some() { 1 } else { 0 });
                 gl.draw_arrays(glow::TRIANGLES, 0, vertices.len() as i32);
             }
+            gl.active_texture(glow::TEXTURE0);
             gl.bind_texture(glow::TEXTURE_2D, None);
+            gl.active_texture(glow::TEXTURE1);
+            gl.bind_texture(glow::TEXTURE_2D, None);
+            gl.active_texture(glow::TEXTURE0);
             gl.bind_vertex_array(None);
             gl.use_program(None);
             gl.disable(glow::DEPTH_TEST);
@@ -302,6 +317,8 @@ in float v_metallic;
 in float v_roughness;
 uniform sampler2D u_base_color_texture;
 uniform bool u_has_texture;
+uniform sampler2D u_metallic_roughness_texture;
+uniform bool u_has_metallic_roughness_texture;
 out vec4 out_color;
 
 const float PI = 3.14159265359;
@@ -333,8 +350,9 @@ vec3 fresnel_schlick(float cos_theta, vec3 f0) {
 void main() {
     vec4 texel = u_has_texture ? texture(u_base_color_texture, v_uv) : vec4(1.0);
     vec3 albedo = v_color * texel.rgb;
-    float metallic = clamp(v_metallic, 0.0, 1.0);
-    float roughness = clamp(v_roughness, 0.045, 1.0);
+    vec4 mr_sample = u_has_metallic_roughness_texture ? texture(u_metallic_roughness_texture, v_uv) : vec4(1.0);
+    float metallic = clamp(v_metallic * mr_sample.b, 0.0, 1.0);
+    float roughness = clamp(v_roughness * mr_sample.g, 0.045, 1.0);
     vec3 n = normalize(v_normal);
     vec3 v = normalize(vec3(0.0, 2.0, 5.0));
     vec3 l = normalize(vec3(0.45, 0.82, 0.36));
