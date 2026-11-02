@@ -3,7 +3,7 @@
 use crate::viewport_camera;
 use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use eframe::glow::{self, HasContext};
-use glam::{Mat4, Vec3};
+use glam::Vec3;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
