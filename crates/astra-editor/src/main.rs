@@ -464,6 +464,28 @@ impl EditorTabViewer<'_> {
         });
         ui.separator();
 
+        // A dedicated drop target makes moving an entity back to the scene root explicit.
+        let (root_rect, root_response) = ui.allocate_exact_size(
+            egui::vec2(ui.available_width(), 28.0),
+            Sense::hover(),
+        );
+        let root_fill = if root_response.hovered() {
+            ui.visuals().widgets.active.bg_fill
+        } else {
+            ui.visuals().widgets.inactive.bg_fill
+        };
+        ui.painter().rect_filled(root_rect, 4.0, root_fill);
+        ui.painter().text(
+            root_rect.center(),
+            egui::Align2::CENTER_CENTER,
+            "↥  Drop here to move to scene root",
+            egui::FontId::proportional(12.0),
+            ui.visuals().text_color(),
+        );
+        if let Some(dropped) = root_response.dnd_release_payload::<EntityId>() {
+            reparent_entity(&mut self.state, *dropped, None);
+        }
+
         let roots: Vec<EntityId> = self.state.scene.roots().map(|e| e.id).collect();
         for id in roots { hierarchy_node(ui, &mut self.state, id, 0); }
         if self.state.scene.is_empty() {
@@ -800,28 +822,46 @@ fn hierarchy_node(ui: &mut Ui, state: &mut EditorState, id: EntityId, depth: usi
     let name = entity.name.clone();
     let has_children = state.scene.children(id).next().is_some();
     let selected = state.selected_entities.contains(&id);
-    let response = ui.dnd_drag_source(Id::new(("hierarchy_entity", id.0)), id, |ui| {
+
+    // Return the actual selectable-label response from the drag source. The drag
+    // handle response itself does not reliably report clicks on the child widget.
+    let drag = ui.dnd_drag_source(Id::new(("hierarchy_entity", id.0)), id, |ui| {
         ui.horizontal(|ui| {
             ui.add_space(depth as f32 * 14.0);
             ui.label(if has_children { "▸" } else { "◇" });
-            ui.selectable_label(selected, format!("{name}  ({})", id.0));
-        });
+            ui.selectable_label(selected, format!("{name}  ({})", id.0))
+        }).inner
     });
-    if response.response.clicked() {
+    if drag.inner.clicked() {
         let additive = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
         state.select(id, additive);
     }
-    if let Some(dropped) = response.response.dnd_release_payload::<EntityId>() {
-        if *dropped != id {
-            let before = state.scene.clone();
-            if state.scene.set_parent(*dropped, Some(id), true).is_ok() {
-                state.undo_stack.push(before); state.redo_stack.clear();
-                state.console_lines.push(format!("Reparented {} under {}", dropped.0, id.0));
-            }
-        }
+    if let Some(dropped) = drag.response.dnd_release_payload::<EntityId>() {
+        reparent_entity(state, *dropped, Some(id));
     }
+
     let children: Vec<EntityId> = state.scene.children(id).map(|e| e.id).collect();
     for child in children { hierarchy_node(ui, state, child, depth + 1); }
+}
+
+fn reparent_entity(state: &mut EditorState, entity: EntityId, parent: Option<EntityId>) {
+    let can_change = state.scene.get(entity).is_some_and(|e| e.parent != parent);
+    if !can_change { return; }
+
+    let before = state.scene.clone();
+    if state.scene.set_parent(entity, parent, true).is_ok() {
+        state.undo_stack.push(before);
+        if state.undo_stack.len() > 128 { state.undo_stack.remove(0); }
+        state.redo_stack.clear();
+        match parent {
+            Some(parent) => state.console_lines.push(format!(
+                "Reparented {} under {}", entity.0, parent.0
+            )),
+            None => state.console_lines.push(format!(
+                "Moved {} to scene root", entity.0
+            )),
+        }
+    }
 }
 
 fn vector3_editor(ui: &mut Ui, label: &str, values: &mut [f32; 3]) {
@@ -898,6 +938,28 @@ mod tests {
         assert_eq!(state.scene.len(), before);
         state.redo();
         assert_eq!(state.scene.len(), before + 1);
+    }
+
+    #[test]
+    fn hierarchy_selection_and_unparenting_keep_world_transform() {
+        let mut state = EditorState::default();
+        let parent = state.scene.spawn("Parent");
+        let child = state.scene.spawn("Child");
+        state.scene.get_mut(parent).unwrap().transform.translation = [4.0, 0.0, 0.0];
+        state.scene.get_mut(child).unwrap().transform.translation = [1.0, 2.0, 0.0];
+        state.scene.set_parent(child, Some(parent), true).unwrap();
+
+        state.select(child, false);
+        assert_eq!(state.selected_entity, Some(child));
+        assert_eq!(state.selected_entities, vec![child]);
+
+        let world_before = state.scene.world_matrix(child).unwrap();
+        reparent_entity(&mut state, child, None);
+        assert_eq!(state.scene.get(child).unwrap().parent, None);
+        assert_eq!(state.scene.world_matrix(child).unwrap(), world_before);
+        assert_eq!(state.undo_stack.len(), 1);
+        state.undo();
+        assert_eq!(state.scene.get(child).unwrap().parent, Some(parent));
     }
 
     #[test]
