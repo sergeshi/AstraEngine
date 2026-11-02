@@ -14,44 +14,83 @@ pub fn load_mesh(path: &Path) -> Result<MeshGeometry, String> {
 }
 
 fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
+    use std::collections::HashMap;
     let text = fs::read_to_string(path).map_err(|error| format!("Cannot read OBJ: {error}"))?;
+    let mut source_positions = Vec::<[f32; 3]>::new();
+    let mut source_uvs = Vec::<[f32; 2]>::new();
+    let mut source_normals = Vec::<[f32; 3]>::new();
     let mut positions = Vec::<[f32; 3]>::new();
+    let mut uvs = Vec::<[f32; 2]>::new();
+    let mut normals = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
+    let mut vertex_map = HashMap::<(usize, Option<usize>, Option<usize>), u32>::new();
+    let mut has_all_uvs = true;
+    let mut has_all_normals = true;
+
+    let resolve = |raw: &str, count: usize, line: usize, kind: &str| -> Result<usize, String> {
+        let index: i64 = raw.parse().map_err(|_| format!("Invalid OBJ {kind} index at line {line}"))?;
+        if index == 0 { return Err(format!("OBJ indices are 1-based at line {line}")); }
+        let resolved = if index > 0 { index - 1 } else { count as i64 + index };
+        if resolved < 0 || resolved as usize >= count { return Err(format!("OBJ {kind} index out of range at line {line}")); }
+        Ok(resolved as usize)
+    };
 
     for (line_index, raw_line) in text.lines().enumerate() {
+        let line_number = line_index + 1;
         let line = raw_line.split('#').next().unwrap_or("").trim();
         if line.is_empty() { continue; }
         let mut parts = line.split_whitespace();
         match parts.next().unwrap_or("") {
             "v" => {
                 let values: Result<Vec<f32>, _> = parts.take(3).map(str::parse::<f32>).collect();
-                let values = values.map_err(|_| format!("Invalid vertex at OBJ line {}", line_index + 1))?;
-                if values.len() != 3 || values.iter().any(|value| !value.is_finite()) {
-                    return Err(format!("Invalid vertex at OBJ line {}", line_index + 1));
-                }
-                positions.push([values[0], values[1], values[2]]);
+                let v = values.map_err(|_| format!("Invalid vertex at OBJ line {line_number}"))?;
+                if v.len() != 3 || v.iter().any(|n| !n.is_finite()) { return Err(format!("Invalid vertex at OBJ line {line_number}")); }
+                source_positions.push([v[0], v[1], v[2]]);
+            }
+            "vt" => {
+                let values: Result<Vec<f32>, _> = parts.take(2).map(str::parse::<f32>).collect();
+                let v = values.map_err(|_| format!("Invalid UV at OBJ line {line_number}"))?;
+                if v.len() < 2 || v.iter().any(|n| !n.is_finite()) { return Err(format!("Invalid UV at OBJ line {line_number}")); }
+                source_uvs.push([v[0], v[1]]);
+            }
+            "vn" => {
+                let values: Result<Vec<f32>, _> = parts.take(3).map(str::parse::<f32>).collect();
+                let v = values.map_err(|_| format!("Invalid normal at OBJ line {line_number}"))?;
+                if v.len() != 3 || v.iter().any(|n| !n.is_finite()) { return Err(format!("Invalid normal at OBJ line {line_number}")); }
+                source_normals.push([v[0], v[1], v[2]]);
             }
             "f" => {
-                let face: Result<Vec<u32>, String> = parts.map(|token| {
-                    let raw = token.split('/').next().unwrap_or("");
-                    let index: i64 = raw.parse().map_err(|_| format!("Invalid face index at OBJ line {}", line_index + 1))?;
-                    if index == 0 { return Err(format!("OBJ indices are 1-based at line {}", line_index + 1)); }
-                    let resolved = if index > 0 { index - 1 } else { positions.len() as i64 + index };
-                    if resolved < 0 || resolved as usize >= positions.len() {
-                        return Err(format!("Face index out of range at OBJ line {}", line_index + 1));
-                    }
-                    Ok(resolved as u32)
-                }).collect();
-                let face = face?;
-                if face.len() < 3 { return Err(format!("Face has fewer than 3 vertices at OBJ line {}", line_index + 1)); }
-                for corner in 1..face.len() - 1 {
-                    indices.extend([face[0], face[corner], face[corner + 1]]);
+                let mut face = Vec::<u32>::new();
+                for token in parts {
+                    let mut fields = token.split('/');
+                    let p = resolve(fields.next().unwrap_or(""), source_positions.len(), line_number, "position")?;
+                    let uv_raw = fields.next().unwrap_or("");
+                    let n_raw = fields.next().unwrap_or("");
+                    let uv = if uv_raw.is_empty() { None } else { Some(resolve(uv_raw, source_uvs.len(), line_number, "UV")?) };
+                    let normal = if n_raw.is_empty() { None } else { Some(resolve(n_raw, source_normals.len(), line_number, "normal")?) };
+                    has_all_uvs &= uv.is_some();
+                    has_all_normals &= normal.is_some();
+                    let key = (p, uv, normal);
+                    let index = if let Some(index) = vertex_map.get(&key) { *index } else {
+                        let index = u32::try_from(positions.len()).map_err(|_| "OBJ exceeds supported vertex count".to_owned())?;
+                        positions.push(source_positions[p]);
+                        uvs.push(uv.map(|i| source_uvs[i]).unwrap_or([0.0, 0.0]));
+                        normals.push(normal.map(|i| source_normals[i]).unwrap_or([0.0, 0.0, 0.0]));
+                        vertex_map.insert(key, index);
+                        index
+                    };
+                    face.push(index);
                 }
+                if face.len() < 3 { return Err(format!("Face has fewer than 3 vertices at OBJ line {line_number}")); }
+                for corner in 1..face.len()-1 { indices.extend([face[0], face[corner], face[corner+1]]); }
             }
             _ => {}
         }
     }
-    MeshGeometry::new(positions, indices, source).map_err(str::to_owned)
+    if positions.is_empty() || indices.is_empty() { return Err("OBJ contains no triangle mesh geometry".to_owned()); }
+    if !has_all_uvs { uvs.clear(); }
+    if !has_all_normals { normals.clear(); }
+    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
 }
 
 fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
