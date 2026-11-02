@@ -4,6 +4,7 @@ use crate::viewport_camera;
 use astra_scene::{EntityId, MeshComponent, PrimitiveMesh, Scene};
 use eframe::glow::{self, HasContext};
 use glam::Vec3;
+use std::{collections::HashMap, path::Path};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -22,6 +23,9 @@ pub struct GpuViewport {
     vertex_buffer: glow::Buffer,
     view_projection: glow::UniformLocation,
     line_vertices: i32,
+    base_color_texture: glow::UniformLocation,
+    has_texture: glow::UniformLocation,
+    textures: HashMap<String, glow::Texture>,
 }
 
 impl GpuViewport {
@@ -69,9 +73,9 @@ impl GpuViewport {
             gl.bind_vertex_array(None);
             gl.bind_buffer(glow::ARRAY_BUFFER, None);
 
-            let view_projection = gl
-                .get_uniform_location(program, "u_view_projection")
-                .ok_or_else(|| "Missing u_view_projection uniform".to_owned())?;
+            let view_projection = gl.get_uniform_location(program, "u_view_projection").ok_or_else(|| "Missing u_view_projection uniform".to_owned())?;
+            let base_color_texture = gl.get_uniform_location(program, "u_base_color_texture").ok_or_else(|| "Missing u_base_color_texture uniform".to_owned())?;
+            let has_texture = gl.get_uniform_location(program, "u_has_texture").ok_or_else(|| "Missing u_has_texture uniform".to_owned())?;
 
             Ok(Self {
                 program,
@@ -79,12 +83,15 @@ impl GpuViewport {
                 vertex_buffer,
                 view_projection,
                 line_vertices: build_line_vertex_count(),
+                base_color_texture,
+                has_texture,
+                textures: HashMap::new(),
             })
         }
     }
 
     pub fn paint(
-        &self,
+        &mut self,
         gl: &glow::Context,
         width: i32,
         height: i32,
@@ -94,48 +101,63 @@ impl GpuViewport {
         target: [f32; 3],
         scene: &Scene,
         selected_entity: Option<EntityId>,
+        texture_root: Option<&Path>,
     ) {
-        let vertices = build_scene_vertices(scene, selected_entity);
-        let total_vertices = vertices.len() as i32;
-        let bytes = unsafe {
-            std::slice::from_raw_parts(
-                vertices.as_ptr().cast::<u8>(),
-                vertices.len() * std::mem::size_of::<Vertex>(),
-            )
-        };
-        let matrix = viewport_camera::view_projection(
-            width,
-            height,
-            yaw,
-            pitch,
-            distance,
-            Vec3::from_array(target),
-        );
-
+        let grid = build_grid_vertices();
+        let matrix = viewport_camera::view_projection(width, height, yaw, pitch, distance, Vec3::from_array(target));
         unsafe {
             gl.enable(glow::DEPTH_TEST);
             gl.depth_func(glow::LESS);
             gl.clear_color(0.105, 0.125, 0.16, 1.0);
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             gl.use_program(Some(self.program));
-            gl.uniform_matrix_4_f32_slice(
-                Some(&self.view_projection),
-                false,
-                &matrix.to_cols_array(),
-            );
-            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
-            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, bytes, glow::DYNAMIC_DRAW);
+            gl.uniform_matrix_4_f32_slice(Some(&self.view_projection), false, &matrix.to_cols_array());
+            gl.uniform_1_i32(Some(&self.base_color_texture), 0);
+            gl.uniform_1_i32(Some(&self.has_texture), 0);
             gl.bind_vertex_array(Some(self.vertex_array));
-            gl.line_width(1.0);
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
+            upload_vertices(gl, &grid);
             gl.draw_arrays(glow::LINES, 0, self.line_vertices);
-            gl.draw_arrays(
-                glow::TRIANGLES,
-                self.line_vertices,
-                total_vertices - self.line_vertices,
-            );
+            for entity in scene.iter() {
+                let vertices = build_entity_vertices(scene, entity.id, selected_entity);
+                if vertices.is_empty() { continue; }
+                upload_vertices(gl, &vertices);
+                let texture_path = if selected_entity == Some(entity.id) { None } else {
+                    entity.material.as_ref().and_then(|m| m.base_color_texture.as_deref())
+                };
+                let texture = texture_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
+                gl.active_texture(glow::TEXTURE0);
+                gl.bind_texture(glow::TEXTURE_2D, texture);
+                gl.uniform_1_i32(Some(&self.has_texture), i32::from(texture.is_some()));
+                gl.draw_arrays(glow::TRIANGLES, 0, vertices.len() as i32);
+            }
+            gl.bind_texture(glow::TEXTURE_2D, None);
             gl.bind_vertex_array(None);
             gl.use_program(None);
             gl.disable(glow::DEPTH_TEST);
+        }
+    }
+
+    fn texture_for_path(&mut self, gl: &glow::Context, root: &Path, relative: &str) -> Option<glow::Texture> {
+        let path = root.join(relative);
+        let key = path.to_string_lossy().to_string();
+        if let Some(texture) = self.textures.get(&key) { return Some(*texture); }
+        let image = image::open(&path).ok()?.flipv().to_rgba8();
+        let (width, height) = image.dimensions();
+        let pixels = image.into_raw();
+        unsafe {
+            let texture = gl.create_texture().ok()?;
+            gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, glow::LINEAR as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, glow::LINEAR as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
+            gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
+            gl.tex_image_2d(glow::TEXTURE_2D, 0, glow::RGBA as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
+            gl.generate_mipmap(glow::TEXTURE_2D);
+            gl.bind_texture(glow::TEXTURE_2D, None);
+            self.textures.insert(key, texture);
+            Some(texture)
         }
     }
 
@@ -143,6 +165,7 @@ impl GpuViewport {
         unsafe {
             gl.delete_buffer(self.vertex_buffer);
             gl.delete_vertex_array(self.vertex_array);
+            for texture in self.textures.values() { gl.delete_texture(*texture); }
             gl.delete_program(self.program);
         }
     }
@@ -200,47 +223,39 @@ fn build_grid_vertices() -> Vec<Vertex> {
     vertices
 }
 
-fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec<Vertex> {
-    let mut vertices = build_grid_vertices();
-    for entity in scene.iter() {
-        let Some(points) = entity.mesh_component.as_ref().map(MeshComponent::triangle_vertices)
-            .or_else(|| entity.mesh.map(PrimitiveMesh::triangle_vertices)) else { continue; };
-        let Some(transform) = scene.world_matrix(entity.id) else { continue; };
-        let color = if selected_entity == Some(entity.id) {
-            [0.98, 0.78, 0.28]
-        } else if let Some(material) = entity.material.as_ref() {
-            [material.base_color[0], material.base_color[1], material.base_color[2]]
-        } else if entity.mesh_component.as_ref().is_some_and(|component| matches!(component, MeshComponent::Imported(_))) {
-            [0.66, 0.72, 0.82]
+fn upload_vertices(gl: &glow::Context, vertices: &[Vertex]) {
+    let bytes = unsafe { std::slice::from_raw_parts(vertices.as_ptr().cast::<u8>(), vertices.len() * std::mem::size_of::<Vertex>()) };
+    unsafe { gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, bytes, glow::DYNAMIC_DRAW); }
+}
+
+fn build_entity_vertices(scene: &Scene, entity_id: EntityId, selected_entity: Option<EntityId>) -> Vec<Vertex> {
+    let Some(entity) = scene.get(entity_id) else { return Vec::new(); };
+    let Some(points) = entity.mesh_component.as_ref().map(MeshComponent::triangle_vertices).or_else(|| entity.mesh.map(PrimitiveMesh::triangle_vertices)) else { return Vec::new(); };
+    let Some(transform) = scene.world_matrix(entity.id) else { return Vec::new(); };
+    let color = if selected_entity == Some(entity.id) { [0.98, 0.78, 0.28] }
+        else if let Some(material) = entity.material.as_ref() { [material.base_color[0], material.base_color[1], material.base_color[2]] }
+        else if entity.mesh_component.as_ref().is_some_and(|component| matches!(component, MeshComponent::Imported(_))) { [0.66, 0.72, 0.82] }
+        else { match entity.mesh.unwrap_or(PrimitiveMesh::Cube) {
+            PrimitiveMesh::Cube => [0.55, 0.63, 0.78], PrimitiveMesh::Sphere => [0.30, 0.72, 0.68],
+            PrimitiveMesh::Plane => [0.72, 0.62, 0.36], PrimitiveMesh::Cylinder => [0.62, 0.48, 0.78], PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
+        }};
+    let geometry = entity.mesh_component.as_ref().and_then(|c| match c { MeshComponent::Imported(g) => Some(g), _ => None });
+    let material = entity.material.as_ref();
+    let mut vertices = Vec::with_capacity(points.len());
+    for (corner, point) in points.iter().enumerate() {
+        let position = transform.transform_point3(Vec3::from_array(*point) - Vec3::from_array(entity.pivot));
+        let local_normal = if let Some(g) = geometry {
+            let index = g.indices.get(corner).copied().unwrap_or(corner as u32) as usize;
+            g.normals.get(index).copied().unwrap_or([0.0, 1.0, 0.0])
         } else {
-            match entity.mesh.unwrap_or(PrimitiveMesh::Cube) {
-                PrimitiveMesh::Cube => [0.55, 0.63, 0.78],
-                PrimitiveMesh::Sphere => [0.30, 0.72, 0.68],
-                PrimitiveMesh::Plane => [0.72, 0.62, 0.36],
-                PrimitiveMesh::Cylinder => [0.62, 0.48, 0.78],
-                PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
-            }
+            let base = (corner / 3) * 3;
+            let a=Vec3::from_array(points[base]); let b=Vec3::from_array(points[base+1]); let c=Vec3::from_array(points[base+2]);
+            (b-a).cross(c-a).normalize_or_zero().to_array()
         };
-        let geometry_data = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g), _ => None });
-        let material = entity.material.as_ref();
-        for (corner, point) in points.iter().enumerate() {
-            let pivot = Vec3::from_array(entity.pivot);
-            let position = transform.transform_point3(Vec3::from_array(*point) - pivot);
-            let local_normal = if let Some(g) = geometry_data {
-                let index = g.indices.get(corner).copied().unwrap_or(corner as u32) as usize;
-                g.normals.get(index).copied().unwrap_or([0.0, 1.0, 0.0])
-            } else {
-                let a = Vec3::from_array(points[(corner / 3) * 3]);
-                let b = Vec3::from_array(points[(corner / 3) * 3 + 1]);
-                let c = Vec3::from_array(points[(corner / 3) * 3 + 2]);
-                (b-a).cross(c-a).normalize_or_zero().to_array()
-            };
-            let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
-            let uv = geometry_data.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or([0.0, 0.0]);
-            vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array(), uv,
-                metallic: material.map(|m| m.metallic).unwrap_or(0.0),
-                roughness: material.map(|m| m.roughness).unwrap_or(0.65) });
-        }
+        let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
+        let uv = geometry.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or([0.0, 0.0]);
+        vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array(), uv,
+            metallic: material.map(|m| m.metallic).unwrap_or(0.0), roughness: material.map(|m| m.roughness).unwrap_or(0.65) });
     }
     vertices
 }
@@ -284,8 +299,12 @@ in vec3 v_normal;
 in vec2 v_uv;
 in float v_metallic;
 in float v_roughness;
+uniform sampler2D u_base_color_texture;
+uniform bool u_has_texture;
 out vec4 out_color;
 void main() {
+    vec4 texel = u_has_texture ? texture(u_base_color_texture, v_uv) : vec4(1.0);
+    vec3 albedo = v_color * texel.rgb;
     vec3 n = normalize(v_normal);
     vec3 l = normalize(vec3(0.45, 0.82, 0.36));
     vec3 v = normalize(vec3(0.0, 2.0, 5.0));
@@ -293,9 +312,9 @@ void main() {
     float ndotl = max(dot(n, l), 0.0);
     float exponent = mix(128.0, 3.0, clamp(v_roughness, 0.0, 1.0));
     float specular = pow(max(dot(n, h), 0.0), exponent);
-    vec3 f0 = mix(vec3(0.04), v_color, clamp(v_metallic, 0.0, 1.0));
-    vec3 diffuse = v_color * (1.0 - clamp(v_metallic, 0.0, 1.0)) * (0.24 + 0.76 * ndotl);
+    vec3 f0 = mix(vec3(0.04), albedo, clamp(v_metallic, 0.0, 1.0));
+    vec3 diffuse = albedo * (1.0 - clamp(v_metallic, 0.0, 1.0)) * (0.24 + 0.76 * ndotl);
     vec3 color = diffuse + f0 * specular * (1.0 - 0.65 * v_roughness);
-    out_color = vec4(color, 1.0);
+    out_color = vec4(color, texel.a);
 }
 "#;
