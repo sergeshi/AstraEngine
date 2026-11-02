@@ -161,13 +161,6 @@ impl MeshGeometry {
         if indices.iter().any(|index| *index as usize >= positions.len()) {
             return Err("mesh index is outside the vertex array");
         }
-        let mut min = Vec3::splat(f32::INFINITY);
-        let mut max = Vec3::splat(f32::NEG_INFINITY);
-        for position in &positions {
-            let point = Vec3::from_array(*position);
-            min = min.min(point);
-            max = max.max(point);
-        }
         let normals = generate_vertex_normals(&positions, &indices);
         let uvs = vec![[0.0, 0.0]; positions.len()];
         Self::new_with_attributes(positions, indices, normals, uvs, source)
