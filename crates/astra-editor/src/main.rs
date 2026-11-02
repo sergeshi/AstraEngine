@@ -1158,6 +1158,7 @@ impl EditorTabViewer<'_> {
         };
         let before = self.state.scene.clone();
         let selected_world_matrix = self.state.scene.world_matrix(selected);
+        {
         let Some(entity) = self.state.scene.get_mut(selected) else {
             ui.weak("Selected entity no longer exists.");
             return;
@@ -1174,12 +1175,6 @@ impl EditorTabViewer<'_> {
                 vector3_editor(ui, "Rotation", &mut entity.transform.rotation);
                 vector3_editor(ui, "Scale", &mut entity.transform.scale);
             });
-        if before != self.state.scene {
-            self.state.dirty = true;
-            self.state.undo_stack.push(before);
-            self.state.redo_stack.clear();
-        }
-
         egui::CollapsingHeader::new("Pivot")
             .default_open(false)
             .show(ui, |ui| {
@@ -1237,6 +1232,13 @@ impl EditorTabViewer<'_> {
                 ui.label("Mesh");
                 ui.weak("Camera, light, physics and script components are planned for later milestones.");
             });
+        }
+
+        if before != self.state.scene {
+            self.state.dirty = true;
+            self.state.undo_stack.push(before);
+            self.state.redo_stack.clear();
+        }
     }
 
     fn content_browser_ui(&mut self, ui: &mut Ui) {
