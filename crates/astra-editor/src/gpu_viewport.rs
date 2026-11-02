@@ -270,11 +270,24 @@ fn build_entity_vertices(scene: &Scene, entity_id: EntityId, selected_entity: Op
             (b-a).cross(c-a).normalize_or_zero().to_array()
         };
         let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
-        let uv = geometry.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or([0.0, 0.0]);
+        let uv = geometry.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or_else(|| primitive_uv(points, corner));
         vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array(), uv,
             metallic: material.map(|m| m.metallic).unwrap_or(0.0), roughness: material.map(|m| m.roughness).unwrap_or(0.65) });
     }
     vertices
+}
+
+fn primitive_uv(points: &[[f32; 3]], corner: usize) -> [f32; 2] {
+    let base = (corner / 3) * 3;
+    if base + 2 >= points.len() { return [0.0, 0.0]; }
+    let a = Vec3::from_array(points[base]);
+    let b = Vec3::from_array(points[base + 1]);
+    let c = Vec3::from_array(points[base + 2]);
+    let n = (b - a).cross(c - a).abs();
+    let p = points[corner];
+    if n.x >= n.y && n.x >= n.z { [p[2] + 0.5, p[1] + 0.5] }
+    else if n.y >= n.z { [p[0] + 0.5, p[2] + 0.5] }
+    else { [p[0] + 0.5, p[1] + 0.5] }
 }
 
 fn push_line(vertices: &mut Vec<Vertex>, a: [f32; 3], b: [f32; 3], color: [f32; 3]) {
