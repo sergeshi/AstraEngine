@@ -154,7 +154,7 @@ impl GpuViewport {
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
             gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
-            gl.tex_image_2d(glow::TEXTURE_2D, 0, glow::RGBA as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
+            gl.tex_image_2d(glow::TEXTURE_2D, 0, glow::SRGB8_ALPHA8 as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
             gl.generate_mipmap(glow::TEXTURE_2D);
             gl.bind_texture(glow::TEXTURE_2D, None);
             self.textures.insert(key, texture);
@@ -303,19 +303,57 @@ in float v_roughness;
 uniform sampler2D u_base_color_texture;
 uniform bool u_has_texture;
 out vec4 out_color;
+
+const float PI = 3.14159265359;
+
+float distribution_ggx(vec3 n, vec3 h, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float ndoth = max(dot(n, h), 0.0);
+    float ndoth2 = ndoth * ndoth;
+    float denominator = ndoth2 * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denominator * denominator, 0.0001);
+}
+
+float geometry_schlick_ggx(float ndotv, float roughness) {
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return ndotv / max(ndotv * (1.0 - k) + k, 0.0001);
+}
+
+float geometry_smith(vec3 n, vec3 v, vec3 l, float roughness) {
+    return geometry_schlick_ggx(max(dot(n, v), 0.0), roughness) *
+           geometry_schlick_ggx(max(dot(n, l), 0.0), roughness);
+}
+
+vec3 fresnel_schlick(float cos_theta, vec3 f0) {
+    return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
+
 void main() {
     vec4 texel = u_has_texture ? texture(u_base_color_texture, v_uv) : vec4(1.0);
     vec3 albedo = v_color * texel.rgb;
+    float metallic = clamp(v_metallic, 0.0, 1.0);
+    float roughness = clamp(v_roughness, 0.045, 1.0);
     vec3 n = normalize(v_normal);
-    vec3 l = normalize(vec3(0.45, 0.82, 0.36));
     vec3 v = normalize(vec3(0.0, 2.0, 5.0));
-    vec3 h = normalize(l + v);
+    vec3 l = normalize(vec3(0.45, 0.82, 0.36));
+    vec3 h = normalize(v + l);
+    vec3 radiance = vec3(3.0, 2.95, 2.8);
+
+    float ndotv = max(dot(n, v), 0.0);
     float ndotl = max(dot(n, l), 0.0);
-    float exponent = mix(128.0, 3.0, clamp(v_roughness, 0.0, 1.0));
-    float specular = pow(max(dot(n, h), 0.0), exponent);
-    vec3 f0 = mix(vec3(0.04), albedo, clamp(v_metallic, 0.0, 1.0));
-    vec3 diffuse = albedo * (1.0 - clamp(v_metallic, 0.0, 1.0)) * (0.24 + 0.76 * ndotl);
-    vec3 color = diffuse + f0 * specular * (1.0 - 0.65 * v_roughness);
+    vec3 f0 = mix(vec3(0.04), albedo, metallic);
+    vec3 f = fresnel_schlick(max(dot(h, v), 0.0), f0);
+    float d = distribution_ggx(n, h, roughness);
+    float g = geometry_smith(n, v, l, roughness);
+    vec3 specular = (d * g * f) / max(4.0 * ndotv * ndotl, 0.001);
+    vec3 kd = (vec3(1.0) - f) * (1.0 - metallic);
+    vec3 direct = (kd * albedo / PI + specular) * radiance * ndotl;
+    vec3 ambient = vec3(0.035) * albedo;
+    vec3 color = ambient + direct;
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0 / 2.2));
     out_color = vec4(color, texel.a);
 }
 "#;
