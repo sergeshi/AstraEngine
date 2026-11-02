@@ -1,5 +1,5 @@
 use crate::viewport_camera;
-use astra_scene::{EntityId, Scene};
+use astra_scene::{EntityId, MeshComponent, PrimitiveMesh, Scene};
 use egui::{Pos2, Rect};
 use glam::{Mat4, Vec3, Vec4};
 
@@ -40,7 +40,8 @@ pub fn pick_entity(
     let mut closest: Option<(f32, EntityId)> = None;
 
     for entity in scene.iter() {
-        let Some(mesh) = entity.mesh else { continue; };
+        let Some(bounds) = entity.mesh_component.as_ref().map(MeshComponent::local_bounds)
+            .or_else(|| entity.mesh.map(PrimitiveMesh::local_bounds)) else { continue; };
 
         let Some(transform) = scene.world_matrix(entity.id) else {
             continue;
@@ -54,7 +55,7 @@ pub fn pick_entity(
         let local_origin = inverse_transform.transform_point3(near);
         // Do not normalize this vector: keeping its scale preserves the world-ray parameter.
         let local_direction = inverse_transform.transform_vector3(ray_direction);
-        let (bounds_min, bounds_max) = mesh.local_bounds();
+        let (bounds_min, bounds_max) = bounds;
         let pivot = Vec3::from_array(entity.pivot);
         let Some(hit_distance) = intersect_aabb(
             local_origin, local_direction,
