@@ -1,6 +1,6 @@
 //! Versioned AstraEngine project container, validation and crash-safe persistence.
 
-use astra_scene::{EntityId, MeshComponent, Scene};
+use astra_scene::{EntityId, MeshComponent, MeshGeometry, Scene};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
@@ -448,6 +448,37 @@ mod tests {
 
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(backup);
+    }
+
+    #[test]
+    fn version_two_projects_migrate_to_current_format() {
+        let mut project = ProjectDocument::new("Version Two");
+        project.format_version = 2;
+        let path = std::env::temp_dir().join(format!("astra-v2-{}-{}.astra", std::process::id(), now_secs()));
+        fs::write(&path, serde_json::to_vec(&project).unwrap()).unwrap();
+        let loaded = ProjectDocument::load(&path).unwrap();
+        assert_eq!(loaded.format_version, CURRENT_FORMAT_VERSION);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn project_round_trip_embeds_imported_mesh_geometry() {
+        let mut project = ProjectDocument::new("Embedded Mesh");
+        let geometry = MeshGeometry::new(
+            vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            vec![0, 1, 2],
+            "triangle.obj",
+        ).unwrap();
+        let scene = project.active_scene_mut().unwrap();
+        let id = scene.spawn("Imported");
+        scene.get_mut(id).unwrap().mesh_component = Some(MeshComponent::Imported(geometry));
+        let path = std::env::temp_dir().join(format!("astra-mesh-{}-{}.astra", std::process::id(), now_secs()));
+        project.save_atomic(&path).unwrap();
+        let loaded = ProjectDocument::load(&path).unwrap();
+        let imported = loaded.active_scene().unwrap().iter()
+            .find(|entity| entity.name == "Imported").unwrap();
+        assert!(matches!(imported.mesh_component, Some(MeshComponent::Imported(_))));
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
