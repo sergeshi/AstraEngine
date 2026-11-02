@@ -103,6 +103,69 @@ fn load_obj(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
     Ok(geometry)
 }
 
+fn load_mtl_material(path: &Path, asset_root: Option<&Path>) -> Result<Material, String> {
+    let text = fs::read_to_string(path).map_err(|error| format!("Cannot read MTL: {error}"))?;
+    let mut material = Material {
+        base_color: [0.72, 0.74, 0.78, 1.0],
+        metallic: 0.0,
+        roughness: 0.65,
+        base_color_texture: None,
+        metallic_roughness_texture: None,
+    };
+    let mut roughness_map = None;
+    let mut metalness_map = None;
+    let mut material_found = false;
+    for raw_line in text.lines() {
+        let line = raw_line.split('#').next().unwrap_or("").trim();
+        if line.is_empty() { continue; }
+        let mut parts = line.split_whitespace();
+        let key = parts.next().unwrap_or("");
+        let values: Vec<&str> = parts.collect();
+        match key {
+            "newmtl" => {
+                if material_found { break; }
+                material_found = true;
+            }
+            "Kd" if values.len() >= 3 => {
+                let rgb: Result<Vec<f32>, _> = values.iter().take(3).map(|value| value.parse()).collect();
+                let rgb = rgb.map_err(|_| "Invalid Kd color in MTL".to_owned())?;
+                material.base_color[..3].copy_from_slice(&rgb);
+            }
+            "d" if !values.is_empty() => {
+                material.base_color[3] = values[0].parse::<f32>().map_err(|_| "Invalid d opacity in MTL".to_owned())?.clamp(0.0, 1.0);
+            }
+            "Tr" if !values.is_empty() => {
+                let transparency = values[0].parse::<f32>().map_err(|_| "Invalid Tr transparency in MTL".to_owned())?;
+                material.base_color[3] = (1.0 - transparency).clamp(0.0, 1.0);
+            }
+            "Pm" if !values.is_empty() => {
+                material.metallic = values[0].parse::<f32>().map_err(|_| "Invalid Pm metallic factor in MTL".to_owned())?.clamp(0.0, 1.0);
+            }
+            "Pr" if !values.is_empty() => {
+                material.roughness = values[0].parse::<f32>().map_err(|_| "Invalid Pr roughness factor in MTL".to_owned())?.clamp(0.0, 1.0);
+            }
+            "map_Kd" | "map_Pr" | "map_Pm" => {
+                let filename = values.last().copied().unwrap_or("");
+                if filename.is_empty() { continue; }
+                let source = path.parent().unwrap_or(Path::new(".")).join(filename);
+                match key {
+                    "map_Kd" => if let Some(root) = asset_root { material.base_color_texture = copy_texture_file(&source, root, filename); },
+                    "map_Pr" => roughness_map = image::open(&source).ok(),
+                    "map_Pm" => metalness_map = image::open(&source).ok(),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(root) = asset_root {
+        if roughness_map.is_some() || metalness_map.is_some() {
+            material.metallic_roughness_texture = save_packed_mr_texture(roughness_map, metalness_map, root, "obj-metallic-roughness");
+        }
+    }
+    Ok(material)
+}
+
 fn safe_asset_stem(name: &str) -> String {
     name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()
 }
