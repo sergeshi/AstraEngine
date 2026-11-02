@@ -292,6 +292,7 @@ impl AstraEditor {
         self.project = project;
         self.project_path = None;
         self.project_dirty = false;
+        let _ = std::fs::remove_file(ProjectDocument::autosave_path());
         self.log("Created a new AstraEngine project.");
     }
 
@@ -586,6 +587,7 @@ impl AstraEditor {
                     self.gizmo_drag = None;
                 }
                 ui.separator();
+                ui.label(format!("Project: {}", self.project.project_name));
                 let scenes: Vec<(String, String)> = self.project.scenes.iter().map(|scene| (scene.id.clone(), scene.name.clone())).collect();
                 let active_name = self.project.scenes.iter().find(|scene| scene.id == self.project.active_scene_id).map(|scene| scene.name.clone()).unwrap_or_else(|| "No Scene".to_owned());
                 egui::ComboBox::from_id_source("active_project_scene")
