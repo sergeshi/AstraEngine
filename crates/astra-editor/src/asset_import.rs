@@ -412,6 +412,61 @@ mod tests {
     }
 
     #[test]
+    fn gltf_import_preserves_normals_uvs_pbr_factors_and_copies_textures() {
+        let root = std::env::temp_dir().join(format!("astra-gltf-{}", std::process::id()));
+        let _ = fs::create_dir_all(&root);
+        let gltf_path = root.join("model.gltf");
+        let buffer_path = root.join("mesh.bin");
+        let image_path = root.join("albedo.png");
+        let mut bytes = Vec::new();
+        for value in [0.0f32,0.0,0.0, 1.0,0.0,0.0, 0.0,1.0,0.0,
+                      0.0,0.0,1.0, 0.0,0.0,1.0, 0.0,0.0,1.0,
+                      0.0,0.0, 1.0,0.0, 0.0,1.0] {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        for value in [0u16,1,2] { bytes.extend_from_slice(&value.to_le_bytes()); }
+        fs::write(&buffer_path, &bytes).unwrap();
+        image::RgbaImage::from_raw(1, 1, vec![200, 120, 60, 255]).unwrap().save(&image_path).unwrap();
+        let document = serde_json::json!({
+            "asset":{"version":"2.0"},
+            "buffers":[{"uri":"mesh.bin","byteLength":bytes.len()}],
+            "bufferViews":[
+                {"buffer":0,"byteOffset":0,"byteLength":36},
+                {"buffer":0,"byteOffset":36,"byteLength":36},
+                {"buffer":0,"byteOffset":72,"byteLength":24},
+                {"buffer":0,"byteOffset":96,"byteLength":6}
+            ],
+            "accessors":[
+                {"bufferView":0,"componentType":5126,"count":3,"type":"VEC3","min":[0,0,0],"max":[1,1,0]},
+                {"bufferView":1,"componentType":5126,"count":3,"type":"VEC3"},
+                {"bufferView":2,"componentType":5126,"count":3,"type":"VEC2"},
+                {"bufferView":3,"componentType":5123,"count":3,"type":"SCALAR"}
+            ],
+            "images":[{"uri":"albedo.png"}],
+            "textures":[{"source":0}],
+            "materials":[{"pbrMetallicRoughness":{
+                "baseColorFactor":[0.2,0.4,0.6,1.0],"metallicFactor":0.7,"roughnessFactor":0.25,
+                "baseColorTexture":{"index":0},"metallicRoughnessTexture":{"index":0}
+            }}],
+            "meshes":[{"primitives":[{"attributes":{"POSITION":0,"NORMAL":1,"TEXCOORD_0":2},"indices":3,"material":0}]}],
+            "nodes":[{"mesh":0}],
+            "scenes":[{"nodes":[0]}],
+            "scene":0
+        });
+        fs::write(&gltf_path, serde_json::to_vec(&document).unwrap()).unwrap();
+        let mesh = load_gltf(&gltf_path, "model.gltf".to_owned(), Some(&root)).unwrap();
+        assert_eq!(mesh.normals, vec![[0.0,0.0,1.0];3]);
+        assert_eq!(mesh.uvs, vec![[0.0,0.0],[1.0,0.0],[0.0,1.0]]);
+        let material = mesh.imported_material.unwrap();
+        assert_eq!(material.base_color, [0.2,0.4,0.6,1.0]);
+        assert!((material.metallic - 0.7).abs() < 1.0e-6);
+        assert!((material.roughness - 0.25).abs() < 1.0e-6);
+        assert!(material.base_color_texture.as_deref().is_some_and(|p| root.join(p).exists()));
+        assert!(material.metallic_roughness_texture.as_deref().is_some_and(|p| root.join(p).exists()));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn fbx_import_rejects_invalid_files_without_panicking() {
         let path = std::env::temp_dir().join(format!("astra-invalid-{}.fbx", std::process::id()));
         fs::write(&path, "not an FBX file").unwrap();
