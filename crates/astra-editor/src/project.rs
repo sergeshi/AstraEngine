@@ -8,6 +8,7 @@ use std::{
     io::{self, Write},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 pub const CURRENT_FORMAT_VERSION: u32 = 2;
@@ -66,19 +67,20 @@ fn default_magic() -> String { PROJECT_MAGIC.to_owned() }
 fn now_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
-fn new_id() -> String {
-    // Stable enough for document identity without introducing a platform RNG dependency.
-    format!("astra-{:x}-{:x}", now_secs(), std::process::id())
+fn new_id(prefix: &str) -> String {
+    static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+    let sequence = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    format!("{prefix}-{:x}-{:x}-{:x}", now_secs(), std::process::id(), sequence)
 }
 
 impl ProjectDocument {
     pub fn new(name: impl Into<String>) -> Self {
         let now = now_secs();
-        let scene_id = "scene-1".to_owned();
+        let scene_id = new_id("scene");
         Self {
             format_version: CURRENT_FORMAT_VERSION,
             magic: PROJECT_MAGIC.to_owned(),
-            project_id: new_id(),
+            project_id: new_id("project"),
             project_name: name.into(),
             created_unix_secs: now,
             modified_unix_secs: now,
@@ -96,8 +98,7 @@ impl ProjectDocument {
     }
 
     pub fn add_scene(&mut self, name: impl Into<String>) -> String {
-        let index = self.scenes.len() + 1;
-        let id = format!("scene-{index}-{:x}", now_secs());
+        let id = new_id("scene");
         self.scenes.push(SceneDocument { id: id.clone(), name: name.into(), scene: Scene::new() });
         self.active_scene_id = id.clone();
         id
@@ -283,6 +284,28 @@ mod tests {
         let mut project = ProjectDocument::new("Broken");
         project.active_scene_id = "missing".to_owned();
         assert!(!project.validate().is_empty());
+    }
+
+    #[test]
+    fn project_file_round_trip_uses_atomic_persistence() {
+        let mut project = ProjectDocument::new("Disk Test");
+        project.add_scene("Second");
+        let path = std::env::temp_dir().join(format!("astra-project-{}-{}.astra", std::process::id(), now_secs()));
+        project.save_atomic(&path).unwrap();
+        let loaded = ProjectDocument::load(&path).unwrap();
+        assert_eq!(loaded.scenes.len(), 2);
+        assert_eq!(loaded.project_name, "Disk Test");
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn future_project_versions_are_rejected() {
+        let mut project = ProjectDocument::new("Future");
+        project.format_version = CURRENT_FORMAT_VERSION + 1;
+        let path = std::env::temp_dir().join(format!("astra-future-{}-{}.astra", std::process::id(), now_secs()));
+        fs::write(&path, serde_json::to_vec(&project).unwrap()).unwrap();
+        assert_eq!(ProjectDocument::load(&path), Err(ProjectError::UnsupportedVersion(CURRENT_FORMAT_VERSION + 1)));
+        let _ = fs::remove_file(path);
     }
 
     #[test]
