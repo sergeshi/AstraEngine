@@ -109,10 +109,12 @@ fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
         }
     } else {
         for mesh in document.meshes() {
-            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, imported_material)?;
+            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material)?;
         }
     }
-    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
+    let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
+    geometry.imported_material = imported_material;
+    Ok(geometry)
 }
 
 fn append_gltf_node(
@@ -128,7 +130,7 @@ fn append_gltf_node(
     let local_transform = glam::Mat4::from_cols_array_2d(&node.transform().matrix());
     let world_transform = parent_transform * local_transform;
     if let Some(mesh) = node.mesh() {
-        append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs)?;
+        append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs, imported_material)?;
     }
     for child in node.children() {
         append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs, imported_material)?;
