@@ -50,7 +50,7 @@ The viewport currently uses a single directional light and a compact metallic-ro
 Run checks before submitting changes:
 
 ```powershell
-cargo fmt --all -- --check
+cargo fmt --all
 cargo check --workspace
 cargo test --workspace
 ```
