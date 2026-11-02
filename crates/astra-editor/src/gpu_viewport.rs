@@ -170,7 +170,7 @@ impl GpuViewport {
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
             gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
             let internal_format = if srgb { glow::SRGB8_ALPHA8 } else { glow::RGBA8 };
-            gl.tex_image_2d(glow::TEXTURE_2D, 0, internal_format as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
+            gl.tex_image_2d(glow::TEXTURE_2D, 0, internal_format as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, glow::PixelUnpackData::Slice(Some(&pixels)));
             gl.generate_mipmap(glow::TEXTURE_2D);
             gl.bind_texture(glow::TEXTURE_2D, None);
             self.textures.insert(key, texture);
@@ -270,7 +270,7 @@ fn build_entity_vertices(scene: &Scene, entity_id: EntityId, selected_entity: Op
             (b-a).cross(c-a).normalize_or_zero().to_array()
         };
         let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
-        let uv = geometry.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or_else(|| primitive_uv(points, corner));
+        let uv = geometry.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or_else(|| primitive_uv(&points, corner));
         vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array(), uv,
             metallic: material.map(|m| m.metallic).unwrap_or(0.0), roughness: material.map(|m| m.roughness).unwrap_or(0.65) });
     }
