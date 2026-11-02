@@ -863,7 +863,7 @@ impl eframe::App for AstraEditor {
                 gpu_viewport: self.gpu_viewport.clone(),
                 project: &mut self.project,
                 project_dirty: &mut self.project_dirty,
-                texture_root: self.project_path.as_ref().and_then(|p| p.parent()).map(Path::to_path_buf),
+                texture_root: self.project_path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()),
                 camera_yaw: &mut self.camera_yaw,
                 camera_pitch: &mut self.camera_pitch,
                 camera_distance: &mut self.camera_distance,
@@ -902,6 +902,9 @@ impl eframe::App for AstraEditor {
 struct EditorTabViewer<'a> {
     state: &'a mut EditorState,
     gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
+    project: &'a mut ProjectDocument,
+    project_dirty: &'a mut bool,
+    texture_root: Option<PathBuf>,
     camera_yaw: &'a mut f32,
     camera_pitch: &'a mut f32,
     camera_distance: &'a mut f32,
