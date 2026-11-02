@@ -143,6 +143,9 @@ pub struct MeshGeometry {
     pub uvs: Vec<[f32; 2]>,
     pub bounds_min: [f32; 3],
     pub bounds_max: [f32; 3],
+    /// Material factors imported from the source asset, when available.
+    #[serde(default)]
+    pub imported_material: Option<Material>,
     /// Original asset filename for provenance; geometry is embedded in the project.
     pub source: String,
 }
@@ -181,7 +184,7 @@ impl MeshGeometry {
         let mut min = Vec3::splat(f32::INFINITY);
         let mut max = Vec3::splat(f32::NEG_INFINITY);
         for position in &positions { let point = Vec3::from_array(*position); min = min.min(point); max = max.max(point); }
-        Ok(Self { positions, indices, normals, uvs, bounds_min: min.to_array(), bounds_max: max.to_array(), source: source.into() })
+        Ok(Self { positions, indices, normals, uvs, bounds_min: min.to_array(), bounds_max: max.to_array(), imported_material: None, source: source.into() })
     }
 
     pub fn triangle_vertices(&self) -> Vec<[f32; 3]> {
