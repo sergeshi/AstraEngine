@@ -377,7 +377,8 @@ impl AstraEditor {
             Ok(()) => {
                 self.project = project;
                 self.project_path = Some(path.clone());
-                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                self.project_dirty = false;
+                self.state.dirty = false;
                 let _ = std::fs::remove_file(ProjectDocument::autosave_path());
                 self.log(format!("Saved project as: {}", path.display()));
                 true
