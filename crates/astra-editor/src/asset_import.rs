@@ -8,7 +8,7 @@ pub fn load_mesh(path: &Path, asset_root: Option<&Path>) -> Result<MeshGeometry,
     match extension.as_str() {
         "obj" => load_obj(path, source, asset_root),
         "gltf" | "glb" => load_gltf(path, source, asset_root),
-        "fbx" => load_fbx(path, source),
+        "fbx" => load_fbx(path, source, asset_root),
         other => Err(format!("Unsupported mesh format: .{other}")),
     }
 }
@@ -123,6 +123,15 @@ fn save_texture_bytes(bytes: &[u8], width: u32, height: u32, color: image::Color
     Some(format!("Assets/Textures/{filename}"))
 }
 
+fn save_encoded_texture(bytes: &[u8], root: &Path, name: &str) -> Option<String> {
+    let directory = root.join("Assets").join("Textures");
+    fs::create_dir_all(&directory).ok()?;
+    let filename = format!("{}.png", safe_asset_stem(Path::new(name).file_stem()?.to_str()?));
+    let destination = directory.join(&filename);
+    image::load_from_memory(bytes).ok()?.save(&destination).ok()?;
+    Some(format!("Assets/Textures/{filename}"))
+}
+
 fn load_gltf(path: &Path, source: String, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     let (document, buffers, images) = gltf::import(path).map_err(|error| format!("glTF import failed: {error}"))?;
     let mut positions = Vec::<[f32; 3]>::new();
@@ -222,7 +231,7 @@ fn append_gltf_mesh(
     Ok(())
 }
 
-fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
+fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     let filename = path.to_str().ok_or_else(|| "FBX path is not valid UTF-8".to_owned())?;
     let options = ufbx::LoadOpts { target_axes: ufbx::CoordinateAxes::right_handed_y_up(), target_unit_meters: 1.0, generate_missing_normals: true, normalize_normals: true, ..Default::default() };
     let scene = ufbx::load_file(filename, options).map_err(|error| format!("FBX import failed: {error:?}"))?;
@@ -230,7 +239,28 @@ fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let mut indices = Vec::<u32>::new();
     let mut normals = Vec::<[f32; 3]>::new();
     let mut uvs = Vec::<[f32; 2]>::new();
+    let mut imported_material = None;
     for node in &scene.nodes {
+        if imported_material.is_none() {
+            if let (Some(root), Some(source_material)) = (asset_root, node.materials.first()) {
+                let pbr = &source_material.pbr;
+                let base = pbr.base_color.value_vec4;
+                let base_color = if pbr.base_color.has_value { [base.x as f32, base.y as f32, base.z as f32, base.w as f32] } else { [0.72, 0.74, 0.78, 1.0] };
+                let metallic = if pbr.metalness.has_value { pbr.metalness.value_vec4.x as f32 } else { 0.0 };
+                let roughness = if pbr.roughness.has_value { pbr.roughness.value_vec4.x as f32 } else { 0.65 };
+                let mut material = Material { base_color, metallic: metallic.clamp(0.0, 1.0), roughness: roughness.clamp(0.0, 1.0), base_color_texture: None };
+                if let (Some(texture), Some(root)) = (pbr.base_color.texture.as_ref(), asset_root) {
+                    let texture_name = texture.filename.as_ref();
+                    let texture_path = Path::new(texture.absolute_filename.as_ref());
+                    if texture_path.is_file() {
+                        if let Some(relative) = copy_texture_file(texture_path, root, texture_name) { material.base_color_texture = Some(relative); }
+                    } else if !texture.content.is_empty() {
+                        if let Some(relative) = save_encoded_texture(&texture.content, root, texture_name) { material.base_color_texture = Some(relative); }
+                    }
+                }
+                imported_material = Some(material);
+            }
+        }
         let Some(mesh) = node.mesh.as_ref() else { continue };
         let matrix = node.geometry_to_world;
         let transform = glam::Mat4::from_cols_array(&[
@@ -259,7 +289,9 @@ fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
         }
     }
     if indices.is_empty() { return Err("FBX file contains no triangle mesh geometry".to_owned()); }
-    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
+    let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
+    geometry.imported_material = imported_material;
+    Ok(geometry)
 }
 
 #[cfg(test)]
