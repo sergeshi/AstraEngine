@@ -321,7 +321,7 @@ mod tests {
         let id=scene.spawn_cube("Legacy Cube");
         let mut value=serde_json::to_value(&scene).unwrap();
         let key=id.0.to_string();
-        let entity=value["entities"][&key].as_object_mut().unwrap();
+        let entity=value["entities"][key.as_str()].as_object_mut().unwrap();
         entity.remove("pivot");
         entity.remove("material");
         let loaded:Scene=serde_json::from_value(value).unwrap();
