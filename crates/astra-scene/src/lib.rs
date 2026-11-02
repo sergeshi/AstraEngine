@@ -39,7 +39,72 @@ impl Transform {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PrimitiveMesh { Cube }
+pub enum PrimitiveMesh { Cube, Sphere, Plane, Cylinder, Capsule }
+
+impl PrimitiveMesh {
+    /// Triangle-list geometry in local space, centered at the origin.
+    pub fn triangle_vertices(self) -> Vec<[f32; 3]> {
+        let mut out = Vec::new();
+        let mut tri = |a: [f32; 3], b: [f32; 3], c: [f32; 3]| { out.extend([a, b, c]); };
+        match self {
+            Self::Cube => {
+                let faces = [
+                    [[-1.,-1.,1.],[1.,-1.,1.],[1.,1.,1.],[-1.,1.,1.]],
+                    [[1.,-1.,-1.],[-1.,-1.,-1.],[-1.,1.,-1.],[1.,1.,-1.]],
+                    [[-1.,-1.,-1.],[-1.,-1.,1.],[-1.,1.,1.],[-1.,1.,-1.]],
+                    [[1.,-1.,1.],[1.,-1.,-1.],[1.,1.,-1.],[1.,1.,1.]],
+                    [[-1.,1.,1.],[1.,1.,1.],[1.,1.,-1.],[-1.,1.,-1.]],
+                    [[-1.,-1.,-1.],[1.,-1.,-1.],[1.,-1.,1.],[-1.,-1.,1.]],
+                ];
+                for f in faces { tri(f[0],f[1],f[2]); tri(f[0],f[2],f[3]); }
+            }
+            Self::Plane => {
+                tri([-1.,0.,-1.],[1.,0.,-1.],[1.,0.,1.]);
+                tri([-1.,0.,-1.],[1.,0.,1.],[-1.,0.,1.]);
+            }
+            Self::Sphere | Self::Capsule => {
+                let rings = 16usize; let segments = 24usize;
+                for y in 0..rings {
+                    let v0 = y as f32 / rings as f32;
+                    let v1 = (y+1) as f32 / rings as f32;
+                    let lat0 = -std::f32::consts::FRAC_PI_2 + v0*std::f32::consts::PI;
+                    let lat1 = -std::f32::consts::FRAC_PI_2 + v1*std::f32::consts::PI;
+                    for x in 0..segments {
+                        let u0 = x as f32 / segments as f32 * std::f32::consts::TAU;
+                        let u1 = (x+1) as f32 / segments as f32 * std::f32::consts::TAU;
+                        let point = |lat:f32, lon:f32| {
+                            let r=lat.cos(); [r*lon.cos(),lat.sin(),r*lon.sin()]
+                        };
+                        let a=point(lat0,u0); let b=point(lat0,u1);
+                        let c=point(lat1,u1); let d=point(lat1,u0);
+                        let adjust = |mut p:[f32;3]| { if self==Self::Capsule { p[1]=p[1]*0.5+p[1].signum()*0.5; } p };
+                        tri(adjust(a),adjust(b),adjust(c)); tri(adjust(a),adjust(c),adjust(d));
+                    }
+                }
+            }
+            Self::Cylinder => {
+                let n=32usize;
+                for i in 0..n {
+                    let a=i as f32/n as f32*std::f32::consts::TAU;
+                    let b=(i+1) as f32/n as f32*std::f32::consts::TAU;
+                    let p=|ang:f32,y:f32| [ang.cos(),y,ang.sin()];
+                    let (a0,a1,b0,b1)=(p(a,-1.),p(a,1.),p(b,-1.),p(b,1.));
+                    tri(a0,b0,b1); tri(a0,b1,a1);
+                    tri([0.,-1.,0.],b0,a0); tri([0.,1.,0.],a1,b1);
+                }
+            }
+        }
+        out
+    }
+
+    pub fn local_bounds(self) -> ([f32; 3], [f32; 3]) {
+        match self {
+            Self::Plane => ([-1.0, -0.025, -1.0], [1.0, 0.025, 1.0]),
+            Self::Capsule => ([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0]),
+            _ => ([-1.0; 3], [1.0; 3]),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entity {
@@ -64,11 +129,16 @@ impl Scene {
         self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), mesh: None });
         id
     }
-    pub fn spawn_cube(&mut self, name: impl Into<String>) -> EntityId {
+    pub fn spawn_primitive(&mut self, name: impl Into<String>, mesh: PrimitiveMesh) -> EntityId {
         let id = self.spawn(name);
-        self.get_mut(id).expect("new entity exists").mesh = Some(PrimitiveMesh::Cube);
+        self.get_mut(id).expect("new entity exists").mesh = Some(mesh);
         id
     }
+    pub fn spawn_cube(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Cube) }
+    pub fn spawn_sphere(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Sphere) }
+    pub fn spawn_plane(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Plane) }
+    pub fn spawn_cylinder(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Cylinder) }
+    pub fn spawn_capsule(&mut self, name: impl Into<String>) -> EntityId { self.spawn_primitive(name, PrimitiveMesh::Capsule) }
     pub fn get(&self, id: EntityId) -> Option<&Entity> { self.entities.get(&id) }
     pub fn get_mut(&mut self, id: EntityId) -> Option<&mut Entity> { self.entities.get_mut(&id) }
     pub fn iter(&self) -> impl Iterator<Item = &Entity> { self.entities.values() }
@@ -195,6 +265,16 @@ mod tests {
         assert_ne!(a,b); assert_eq!(s.get(a).unwrap().transform,Transform::default());
     }
     #[test] fn spawned_cube_has_mesh() { let mut s=Scene::new(); let id=s.spawn_cube("Cube"); assert_eq!(s.get(id).unwrap().mesh,Some(PrimitiveMesh::Cube)); }
+    #[test] fn all_primitives_have_geometry_and_serialize() {
+        let mut scene=Scene::new();
+        for mesh in [PrimitiveMesh::Cube,PrimitiveMesh::Sphere,PrimitiveMesh::Plane,PrimitiveMesh::Cylinder,PrimitiveMesh::Capsule] {
+            let id=scene.spawn_primitive(format!("{mesh:?}"),mesh);
+            assert!(!mesh.triangle_vertices().is_empty());
+            assert_eq!(scene.get(id).unwrap().mesh,Some(mesh));
+        }
+        let json=serde_json::to_string(&scene).unwrap();
+        assert_eq!(serde_json::from_str::<Scene>(&json).unwrap(),scene);
+    }
     #[test] fn world_matrix_inherits_parent_translation_rotation_and_scale() {
         let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C");
         s.get_mut(p).unwrap().transform=Transform{translation:[3.0,0.0,0.0],rotation:[0.0,0.0,std::f32::consts::FRAC_PI_2],scale:[2.0;3]};
