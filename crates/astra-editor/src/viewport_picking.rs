@@ -55,7 +55,12 @@ pub fn pick_entity(
         // Do not normalize this vector: keeping its scale preserves the world-ray parameter.
         let local_direction = inverse_transform.transform_vector3(ray_direction);
         let (bounds_min, bounds_max) = mesh.local_bounds();
-        let Some(hit_distance) = intersect_aabb(local_origin, local_direction, Vec3::from_array(bounds_min), Vec3::from_array(bounds_max)) else {
+        let pivot = Vec3::from_array(entity.pivot);
+        let Some(hit_distance) = intersect_aabb(
+            local_origin, local_direction,
+            Vec3::from_array(bounds_min) - pivot,
+            Vec3::from_array(bounds_max) - pivot,
+        ) else {
             continue;
         };
 
