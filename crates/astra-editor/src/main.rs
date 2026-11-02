@@ -823,54 +823,53 @@ fn hierarchy_node(ui: &mut Ui, state: &mut EditorState, id: EntityId, depth: usi
     let has_children = state.scene.children(id).next().is_some();
     let selected = state.selected_entities.contains(&id);
 
-    // Use one full-width interaction surface for the entire hierarchy row.
-    // This avoids the narrow hit target produced by selectable_label inside horizontal().
-    let drag = ui.dnd_drag_source(Id::new(("hierarchy_entity", id.0)), id, |ui| {
-        let row_height = ui.spacing().interact_size.y;
-        let row_width = ui.available_width().max(1.0);
-        let (rect, response) = ui.allocate_exact_size(
-            egui::vec2(row_width, row_height),
-            Sense::click_and_drag(),
-        );
+    // One response owns both click selection and drag initiation. Using
+    // dnd_set_drag_payload avoids the extra Sense::drag response created by
+    // Ui::dnd_drag_source, which can steal clicks from the row widget.
+    let row_height = ui.spacing().interact_size.y;
+    let row_width = ui.available_width().max(1.0);
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(row_width, row_height),
+        Sense::click_and_drag(),
+    );
+    response.dnd_set_drag_payload(id);
 
-        let visuals = ui.visuals();
-        let fill = if selected {
-            visuals.selection.bg_fill
-        } else if response.hovered() {
-            visuals.widgets.hovered.bg_fill
-        } else {
-            egui::Color32::TRANSPARENT
-        };
-        if fill != egui::Color32::TRANSPARENT {
-            ui.painter().rect_filled(rect, 3.0, fill);
-        }
+    let visuals = ui.visuals();
+    let fill = if selected {
+        visuals.selection.bg_fill
+    } else if response.hovered() {
+        visuals.widgets.hovered.bg_fill
+    } else {
+        egui::Color32::TRANSPARENT
+    };
+    if fill != egui::Color32::TRANSPARENT {
+        ui.painter().rect_filled(rect, 3.0, fill);
+    }
 
-        let indent = depth as f32 * 14.0;
-        let icon = if has_children { "▸" } else { "◇" };
-        let text_color = if selected {
-            visuals.selection.stroke.color
-        } else {
-            visuals.text_color()
-        };
-        let font = egui::TextStyle::Body.resolve(ui.style());
-        let icon_pos = egui::pos2(rect.left() + indent + 4.0, rect.center().y);
-        let name_pos = egui::pos2(rect.left() + indent + 22.0, rect.center().y);
-        ui.painter().text(icon_pos, egui::Align2::LEFT_CENTER, icon, font.clone(), text_color);
-        ui.painter().text(
-            name_pos,
-            egui::Align2::LEFT_CENTER,
-            format!("{name}  ({})", id.0),
-            font,
-            text_color,
-        );
-        response
-    });
+    let indent = depth as f32 * 14.0;
+    let icon = if has_children { "▸" } else { "◇" };
+    let text_color = if selected {
+        visuals.selection.stroke.color
+    } else {
+        visuals.text_color()
+    };
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let icon_pos = egui::pos2(rect.left() + indent + 4.0, rect.center().y);
+    let name_pos = egui::pos2(rect.left() + indent + 22.0, rect.center().y);
+    ui.painter().text(icon_pos, egui::Align2::LEFT_CENTER, icon, font.clone(), text_color);
+    ui.painter().text(
+        name_pos,
+        egui::Align2::LEFT_CENTER,
+        format!("{name}  ({})", id.0),
+        font,
+        text_color,
+    );
 
-    if drag.response.clicked() || drag.inner.clicked() {
+    if response.clicked() {
         let additive = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
         state.select(id, additive);
     }
-    if let Some(dropped) = drag.response.dnd_release_payload::<EntityId>() {
+    if let Some(dropped) = response.dnd_release_payload::<EntityId>() {
         reparent_entity(state, *dropped, Some(id));
     }
 
