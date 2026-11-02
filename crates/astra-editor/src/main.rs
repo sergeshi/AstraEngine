@@ -313,11 +313,13 @@ impl AstraEditor {
             Ok(geometry) => {
                 let source = geometry.source.clone();
                 let imported_material = geometry.imported_material.clone();
-                if let Some(relative_path) = imported_material.as_ref().and_then(|m| m.base_color_texture.clone()) {
-                    if !self.project.textures.iter().any(|t| t.relative_path == relative_path) {
-                        let name = std::path::Path::new(&relative_path).file_stem().and_then(|n| n.to_str()).unwrap_or("Imported Texture").to_owned();
-                        let id = format!("texture-import-{:x}-{}", std::process::id(), self.project.textures.len() + 1);
-                        self.project.textures.push(project::TextureAsset { id, name, relative_path });
+                if let Some(material) = imported_material.as_ref() {
+                    for relative_path in [material.base_color_texture.clone(), material.metallic_roughness_texture.clone()].into_iter().flatten() {
+                        if !self.project.textures.iter().any(|t| t.relative_path == relative_path) {
+                            let name = std::path::Path::new(&relative_path).file_stem().and_then(|n| n.to_str()).unwrap_or("Imported Texture").to_owned();
+                            let id = format!("texture-import-{:x}-{}", std::process::id(), self.project.textures.len() + 1);
+                            self.project.textures.push(project::TextureAsset { id, name, relative_path });
+                        }
                     }
                 }
                 let vertex_count = geometry.positions.len();
@@ -1353,6 +1355,17 @@ impl EditorTabViewer<'_> {
                             for texture in &self.project.textures {
                                 if ui.selectable_label(selected_texture == texture.relative_path, &texture.name).clicked() {
                                     material.base_color_texture = Some(texture.relative_path.clone());
+                                }
+                            }
+                        });
+                    let selected_mr_texture = material.metallic_roughness_texture.clone().unwrap_or_default();
+                    egui::ComboBox::from_id_salt("material_metallic_roughness_texture")
+                        .selected_text(if selected_mr_texture.is_empty() { "Metallic / Roughness Map: None".to_owned() } else { format!("Metallic / Roughness: {}", selected_mr_texture) })
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(selected_mr_texture.is_empty(), "None").clicked() { material.metallic_roughness_texture = None; }
+                            for texture in &self.project.textures {
+                                if ui.selectable_label(selected_mr_texture == texture.relative_path, &texture.name).clicked() {
+                                    material.metallic_roughness_texture = Some(texture.relative_path.clone());
                                 }
                             }
                         });
