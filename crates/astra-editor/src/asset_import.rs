@@ -58,26 +58,62 @@ fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let mut positions = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
 
-    for mesh in document.meshes() {
-        for primitive in mesh.primitives() {
-            if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
-            let reader = primitive.reader(|buffer| Some(buffers[buffer.index()].0.as_slice()));
-            let primitive_positions: Vec<[f32; 3]> = reader.read_positions()
-                .ok_or_else(|| format!("glTF mesh '{}' has no POSITION attribute", mesh.name().unwrap_or("unnamed")))?
-                .collect();
-            if primitive_positions.is_empty() { continue; }
-            let primitive_indices: Vec<u32> = reader.read_indices()
-                .map(|values| values.into_u32().collect())
-                .unwrap_or_else(|| (0..primitive_positions.len() as u32).collect());
-            if primitive_indices.len() % 3 != 0 {
-                return Err("glTF triangle primitive has an invalid index count".to_owned());
-            }
-            let base = positions.len() as u32;
-            positions.extend(primitive_positions);
-            indices.extend(primitive_indices.into_iter().map(|index| base + index));
+    if let Some(scene) = document.default_scene().or_else(|| document.scenes().next()) {
+        for node in scene.nodes() {
+            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices)?;
+        }
+    } else {
+        for mesh in document.meshes() {
+            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices)?;
         }
     }
     MeshGeometry::new(positions, indices, source).map_err(str::to_owned)
+}
+
+fn append_gltf_node(
+    node: gltf::Node<'_>,
+    parent_transform: glam::Mat4,
+    buffers: &[gltf::buffer::Data],
+    positions: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+) -> Result<(), String> {
+    let local_transform = glam::Mat4::from_cols_array_2d(&node.transform().matrix());
+    let world_transform = parent_transform * local_transform;
+    if let Some(mesh) = node.mesh() {
+        append_gltf_mesh(mesh, world_transform, buffers, positions, indices)?;
+    }
+    for child in node.children() {
+        append_gltf_node(child, world_transform, buffers, positions, indices)?;
+    }
+    Ok(())
+}
+
+fn append_gltf_mesh(
+    mesh: gltf::Mesh<'_>,
+    transform: glam::Mat4,
+    buffers: &[gltf::buffer::Data],
+    positions: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+) -> Result<(), String> {
+    for primitive in mesh.primitives() {
+        if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
+        let reader = primitive.reader(|buffer| Some(buffers[buffer.index()].0.as_slice()));
+        let primitive_positions: Vec<[f32; 3]> = reader.read_positions()
+            .ok_or_else(|| format!("glTF mesh '{}' has no POSITION attribute", mesh.name().unwrap_or("unnamed")))?
+            .map(|position| transform.transform_point3(glam::Vec3::from_array(position)).to_array())
+            .collect();
+        if primitive_positions.is_empty() { continue; }
+        let primitive_indices: Vec<u32> = reader.read_indices()
+            .map(|values| values.into_u32().collect())
+            .unwrap_or_else(|| (0..primitive_positions.len() as u32).collect());
+        if primitive_indices.len() % 3 != 0 {
+            return Err("glTF triangle primitive has an invalid index count".to_owned());
+        }
+        let base = positions.len() as u32;
+        positions.extend(primitive_positions);
+        indices.extend(primitive_indices.into_iter().map(|index| base + index));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
