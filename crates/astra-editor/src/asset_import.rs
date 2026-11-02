@@ -1,6 +1,8 @@
 //! OBJ, glTF, GLB and FBX mesh import. Imported geometry is embedded in the .astra scene.
 use astra_scene::{Material, MeshGeometry};
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::atomic::{AtomicU64, Ordering}};
+
+static NEXT_IMPORTED_TEXTURE_ID: AtomicU64 = AtomicU64::new(1);
 
 pub fn load_mesh(path: &Path, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
@@ -109,7 +111,8 @@ fn copy_texture_file(source: &Path, root: &Path, name: &str) -> Option<String> {
     fs::create_dir_all(&directory).ok()?;
     let extension = source.extension().and_then(|e| e.to_str()).unwrap_or("png");
     let stem = safe_asset_stem(Path::new(name).file_stem()?.to_str()?);
-    let filename = format!("{stem}-{}.{}", std::process::id(), extension);
+    let sequence = NEXT_IMPORTED_TEXTURE_ID.fetch_add(1, Ordering::Relaxed);
+    let filename = format!("{stem}-{}-{sequence}.{}", std::process::id(), extension);
     fs::copy(source, directory.join(&filename)).ok()?;
     Some(format!("Assets/Textures/{filename}"))
 }
@@ -117,7 +120,8 @@ fn copy_texture_file(source: &Path, root: &Path, name: &str) -> Option<String> {
 fn save_texture_bytes(bytes: &[u8], width: u32, height: u32, color: image::ColorType, root: &Path, name: &str) -> Option<String> {
     let directory = root.join("Assets").join("Textures");
     fs::create_dir_all(&directory).ok()?;
-    let filename = format!("{}.png", safe_asset_stem(name));
+    let sequence = NEXT_IMPORTED_TEXTURE_ID.fetch_add(1, Ordering::Relaxed);
+    let filename = format!("{}-{sequence}.png", safe_asset_stem(name));
     let destination = directory.join(&filename);
     image::save_buffer(&destination, bytes, width, height, color).ok()?;
     Some(format!("Assets/Textures/{filename}"))
@@ -238,6 +242,29 @@ fn append_gltf_mesh(
     Ok(())
 }
 
+fn load_ufbx_texture_image(texture: &ufbx::Texture) -> Option<image::DynamicImage> {
+    let external = Path::new(texture.absolute_filename.as_ref());
+    if external.is_file() { image::open(external).ok() } else { image::load_from_memory(&texture.content).ok() }
+}
+
+fn save_packed_mr_texture(roughness: Option<image::DynamicImage>, metalness: Option<image::DynamicImage>, root: &Path, name: &str) -> Option<String> {
+    let reference = roughness.as_ref().or(metalness.as_ref())?;
+    let (width, height) = reference.dimensions();
+    let roughness = roughness.map(|image| image.to_luma8()).map(|image| image::imageops::resize(&image, width, height, image::imageops::FilterType::Triangle));
+    let metalness = metalness.map(|image| image.to_luma8()).map(|image| image::imageops::resize(&image, width, height, image::imageops::FilterType::Triangle));
+    let packed = image::RgbaImage::from_fn(width, height, |x, y| {
+        let r = roughness.as_ref().map(|image| image.get_pixel(x, y).0[0]).unwrap_or(255);
+        let m = metalness.as_ref().map(|image| image.get_pixel(x, y).0[0]).unwrap_or(255);
+        image::Rgba([255, r, m, 255])
+    });
+    let directory = root.join("Assets").join("Textures");
+    fs::create_dir_all(&directory).ok()?;
+    let sequence = NEXT_IMPORTED_TEXTURE_ID.fetch_add(1, Ordering::Relaxed);
+    let filename = format!("{}-{sequence}.png", safe_asset_stem(name));
+    packed.save(directory.join(&filename)).ok()?;
+    Some(format!("Assets/Textures/{filename}"))
+}
+
 fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     let filename = path.to_str().ok_or_else(|| "FBX path is not valid UTF-8".to_owned())?;
     let options = ufbx::LoadOpts { target_axes: ufbx::CoordinateAxes::right_handed_y_up(), target_unit_meters: 1.0, generate_missing_normals: true, normalize_normals: true, ..Default::default() };
@@ -263,6 +290,15 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
                         if let Some(relative) = copy_texture_file(texture_path, root, texture_name) { material.base_color_texture = Some(relative); }
                     } else if !texture.content.is_empty() {
                         if let Some(relative) = save_encoded_texture(&texture.content, root, texture_name) { material.base_color_texture = Some(relative); }
+                    }
+                }
+                if let Some(root) = asset_root {
+                    let roughness = pbr.roughness.texture.as_ref().and_then(load_ufbx_texture_image);
+                    let metalness = pbr.metalness.texture.as_ref().and_then(load_ufbx_texture_image);
+                    if roughness.is_some() || metalness.is_some() {
+                        if let Some(relative) = save_packed_mr_texture(roughness, metalness, root, "fbx-metallic-roughness") {
+                            material.metallic_roughness_texture = Some(relative);
+                        }
                     }
                 }
                 imported_material = Some(material);
