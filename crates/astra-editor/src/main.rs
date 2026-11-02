@@ -1215,19 +1215,19 @@ impl EditorTabViewer<'_> {
                 if entity.material.is_none() && ui.button("＋ Create Material").clicked() {
                     entity.material = Some(astra_scene::Material::default());
                 }
-                if let Some(material) = entity.material.as_mut() {
+                let remove_material = if let Some(material) = entity.material.as_mut() {
                     ui.label("Base Color");
                     for (index, channel) in ["R", "G", "B", "A"].into_iter().enumerate() {
                         ui.add(egui::Slider::new(&mut material.base_color[index], 0.0..=1.0).text(channel));
                     }
                     ui.add(egui::Slider::new(&mut material.metallic, 0.0..=1.0).text("Metallic"));
                     ui.add(egui::Slider::new(&mut material.roughness, 0.0..=1.0).text("Roughness"));
-                    if ui.button("Remove Material").clicked() {
-                        entity.material = None;
-                    }
+                    ui.button("Remove Material").clicked()
                 } else {
                     ui.weak("No material assigned.");
-                }
+                    false
+                };
+                if remove_material { entity.material = None; }
             });
 
         egui::CollapsingHeader::new("Components")
