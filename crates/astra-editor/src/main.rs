@@ -355,7 +355,7 @@ impl AstraEditor {
 
     fn save_project_as(&mut self) -> bool {
         let safe_name: String = self.project.project_name.chars()
-            .map(|ch| if matches!(ch, '/' | '\\\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { ch })
+            .map(|ch| if matches!(ch, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { ch })
             .collect();
         let default_name = format!("{safe_name}.astra");
         let Some(path) = rfd::FileDialog::new()
@@ -363,11 +363,11 @@ impl AstraEditor {
             .set_file_name(&default_name)
             .save_file() else { return false; };
         let mut project = self.project_snapshot();
+        if let Some(name) = path.file_stem().and_then(|value| value.to_str()) {
+            project.project_name = name.to_owned();
+        }
         match project.save_atomic(&path) {
             Ok(()) => {
-                if let Some(name) = path.file_stem().and_then(|value| value.to_str()) {
-                    project.project_name = name.to_owned();
-                }
                 self.project = project;
                 self.project_path = Some(path.clone());
                 self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
