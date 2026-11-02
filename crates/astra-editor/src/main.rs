@@ -1,4 +1,5 @@
 mod gpu_viewport;
+mod project;
 mod viewport_camera;
 mod viewport_gizmo;
 mod viewport_picking;
@@ -12,9 +13,14 @@ use gpu_viewport::GpuViewport;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use viewport_picking::pick_entity;
+use project::ProjectDocument;
+use std::path::PathBuf;
+use std::time::SystemTime;
 
 const DOCK_STATE_KEY: &str = "astra_editor_dock_state";
 const EDITOR_STATE_KEY: &str = "astra_editor_state";
+const PROJECT_STATE_KEY: &str = "astra_project_state";
+const PROJECT_PATH_KEY: &str = "astra_project_path";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 enum EditorTab {
@@ -156,6 +162,9 @@ struct GizmoDrag {
     basis: Quat,
 }
 
+#[derive(Debug, Clone)]
+enum PendingAction { NewProject, OpenProject(PathBuf) }
+
 struct AstraEditor {
     dock_state: DockState<EditorTab>,
     state: EditorState,
@@ -167,6 +176,11 @@ struct AstraEditor {
     gizmo_mode: viewport_gizmo::Mode,
     gizmo_space: viewport_gizmo::Space,
     gizmo_drag: Option<GizmoDrag>,
+    project: ProjectDocument,
+    project_path: Option<PathBuf>,
+    saved_snapshot: Vec<u8>,
+    last_autosave: SystemTime,
+    pending_action: Option<PendingAction>,
 }
 
 impl AstraEditor {
@@ -184,6 +198,27 @@ impl AstraEditor {
         if state.selected_entities.is_empty() {
             state.selected_entities = state.selected_entity.into_iter().collect();
         }
+        let mut project: ProjectDocument = cc.storage
+            .and_then(|storage| eframe::get_value(storage, PROJECT_STATE_KEY))
+            .unwrap_or_else(|| ProjectDocument::new("Untitled"));
+        if let Some(scene) = project.active_scene() {
+            state.scene = scene.clone();
+        } else if let Some(scene) = project.active_scene_mut() {
+            *scene = state.scene.clone();
+        }
+        let mut project_path: Option<PathBuf> = cc.storage
+            .and_then(|storage| eframe::get_value::<String>(storage, PROJECT_PATH_KEY))
+            .map(PathBuf::from);
+        let recovery_path = ProjectDocument::autosave_path();
+        if let Ok(recovered) = ProjectDocument::load(&recovery_path) {
+            if recovered.modified_unix_secs > project.modified_unix_secs {
+                project = recovered;
+                state.scene = project.active_scene().cloned().unwrap_or_default();
+                project_path = None;
+                state.console_lines.push("Recovered a newer autosaved project.".to_owned());
+            }
+        }
+        let saved_snapshot = serde_json::to_vec(&project).unwrap_or_default();
 
         let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
             Ok(renderer) => {
@@ -211,6 +246,11 @@ impl AstraEditor {
             gizmo_mode: viewport_gizmo::Mode::Move,
             gizmo_space: viewport_gizmo::Space::World,
             gizmo_drag: None,
+            project,
+            project_path,
+            saved_snapshot,
+            last_autosave: SystemTime::now(),
+            pending_action: None,
         }
     }
 
@@ -218,14 +258,193 @@ impl AstraEditor {
         self.state.console_lines.push(message.into());
     }
 
+    fn project_snapshot(&self) -> ProjectDocument {
+        let mut project = self.project.clone();
+        if let Some(scene) = project.active_scene_mut() {
+            *scene = self.state.scene.clone();
+        }
+        project
+    }
+
+    fn is_project_dirty(&self) -> bool {
+        serde_json::to_vec(&self.project_snapshot()).map(|bytes| bytes != self.saved_snapshot).unwrap_or(true)
+    }
+
+    fn reset_scene_editor_state(&mut self, scene: Scene) {
+        self.state.scene = scene;
+        self.state.selected_entities.clear();
+        self.state.selected_entity = None;
+        self.state.undo_stack.clear();
+        self.state.redo_stack.clear();
+        self.gizmo_drag = None;
+    }
+
+    fn create_new_project(&mut self) {
+        let mut state = EditorState::default();
+        let mut project = ProjectDocument::new("Untitled");
+        if let Some(scene) = project.active_scene_mut() { *scene = state.scene.clone(); }
+        self.state = state;
+        self.project = project;
+        self.project_path = None;
+        self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+        self.log("Created a new AstraEngine project.");
+    }
+
+    fn request_new_project(&mut self) {
+        if self.is_project_dirty() {
+            self.pending_action = Some(PendingAction::NewProject);
+        } else {
+            self.create_new_project();
+        }
+    }
+
+    fn request_open_project(&mut self) {
+        let Some(path) = rfd::FileDialog::new()
+            .add_filter("AstraEngine Project", &["astra"])
+            .pick_file() else { return; };
+        let action = PendingAction::OpenProject(path);
+        if self.is_project_dirty() {
+            self.pending_action = Some(action);
+        } else {
+            self.execute_pending_action(action);
+        }
+    }
+
+    fn execute_pending_action(&mut self, action: PendingAction) {
+        match action {
+            PendingAction::NewProject => self.create_new_project(),
+            PendingAction::OpenProject(path) => self.open_project(&path),
+        }
+    }
+
+    fn open_project(&mut self, path: &std::path::Path) {
+        match ProjectDocument::load(path) {
+            Ok(project) => {
+                let scene = project.active_scene().cloned().unwrap_or_default();
+                self.project = project;
+                self.project_path = Some(path.to_path_buf());
+                self.reset_scene_editor_state(scene);
+                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                let _ = std::fs::remove_file(ProjectDocument::autosave_path());
+                self.log(format!("Opened project: {}", path.display()));
+            }
+            Err(error) => self.log(format!("Open failed: {error}")),
+        }
+    }
+
+    fn save_project(&mut self) -> bool {
+        if self.project_path.is_none() {
+            return self.save_project_as();
+        }
+        let path = self.project_path.clone().expect("path checked");
+        let mut project = self.project_snapshot();
+        match project.save_atomic(&path) {
+            Ok(()) => {
+                self.project = project;
+                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                let _ = std::fs::remove_file(ProjectDocument::autosave_path());
+                self.log(format!("Saved project: {}", path.display()));
+                true
+            }
+            Err(error) => {
+                self.log(format!("Save failed: {error}"));
+                false
+            }
+        }
+    }
+
+    fn save_project_as(&mut self) -> bool {
+        let default_name = format!("{}.astra", self.project.project_name.replace(['/', '\\\\', ':', '*', '?', '"', '<', '>', '|'], "_"));
+        let Some(path) = rfd::FileDialog::new()
+            .add_filter("AstraEngine Project", &["astra"])
+            .set_file_name(&default_name)
+            .save_file() else { return false; };
+        let mut project = self.project_snapshot();
+        match project.save_atomic(&path) {
+            Ok(()) => {
+                self.project = project;
+                self.project_path = Some(path.clone());
+                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                let _ = std::fs::remove_file(ProjectDocument::autosave_path());
+                self.log(format!("Saved project as: {}", path.display()));
+                true
+            }
+            Err(error) => {
+                self.log(format!("Save As failed: {error}"));
+                false
+            }
+        }
+    }
+
+    fn add_scene(&mut self) {
+        if let Some(scene) = self.project.active_scene_mut() { *scene = self.state.scene.clone(); }
+        self.project.add_scene(format!("Scene {}", self.project.scenes.len() + 1));
+        self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
+        self.log("Added a new scene.");
+    }
+
+    fn switch_scene(&mut self, id: &str) {
+        if id == self.project.active_scene_id { return; }
+        if let Some(scene) = self.project.active_scene_mut() { *scene = self.state.scene.clone(); }
+        if self.project.set_active_scene(id) {
+            self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
+            self.log(format!("Switched to scene: {}", self.project.scenes.iter().find(|s| s.id == id).map(|s| s.name.as_str()).unwrap_or(id)));
+        }
+    }
+
+    fn autosave_if_needed(&mut self, ctx: &egui::Context) {
+        if !self.is_project_dirty() || !ProjectDocument::autosave_due(self.last_autosave) { return; }
+        let mut project = self.project_snapshot();
+        match project.save_atomic(&ProjectDocument::autosave_path()) {
+            Ok(()) => {
+                self.last_autosave = SystemTime::now();
+                self.log("Autosave recovery snapshot written.");
+            }
+            Err(error) => self.log(format!("Autosave failed: {error}")),
+        }
+        ctx.request_repaint_after(std::time::Duration::from_secs(5));
+    }
+
+    fn unsaved_changes_dialog(&mut self, ctx: &egui::Context) {
+        let mut save = false;
+        let mut discard = false;
+        let mut cancel = false;
+        if self.pending_action.is_some() {
+            egui::Window::new("Unsaved changes")
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.label("The project has unsaved changes. Save before continuing?");
+                    ui.horizontal(|ui| {
+                        if ui.button("Save and Continue").clicked() { save = true; }
+                        if ui.button("Discard").clicked() { discard = true; }
+                        if ui.button("Cancel").clicked() { cancel = true; }
+                    });
+                });
+        }
+        if cancel { self.pending_action = None; }
+        if save {
+            if self.save_project() {
+                if let Some(action) = self.pending_action.take() { self.execute_pending_action(action); }
+            }
+        }
+        if discard {
+            if let Some(action) = self.pending_action.take() { self.execute_pending_action(action); }
+        }
+    }
+
     fn handle_shortcuts(&mut self, ctx: &egui::Context) {
         if ctx.wants_keyboard_input() { return; }
-        let (undo, redo, duplicate, delete, select_all) = ctx.input(|i| (
+        let (undo, redo, duplicate, delete, select_all, new_project, open_project, save, save_as) = ctx.input(|i| (
             i.modifiers.command && i.key_pressed(egui::Key::Z),
             i.modifiers.command && i.key_pressed(egui::Key::Y),
             i.modifiers.command && i.key_pressed(egui::Key::D),
             i.key_pressed(egui::Key::Delete),
             i.modifiers.command && i.key_pressed(egui::Key::A),
+            i.modifiers.command && i.key_pressed(egui::Key::N),
+            i.modifiers.command && i.key_pressed(egui::Key::O),
+            i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::S),
+            i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::S),
         ));
         if undo { self.state.undo(); }
         if redo { self.state.redo(); }
@@ -235,18 +454,36 @@ impl AstraEditor {
             self.state.selected_entities = self.state.scene.iter().map(|e| e.id).collect();
             self.state.selected_entity = self.state.selected_entities.last().copied();
         }
+        if new_project { self.request_new_project(); }
+        if open_project { self.request_open_project(); }
+        if save { self.save_project(); }
+        if save_as { self.save_project_as(); }
     }
 
     fn menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("main_menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("New Scene").clicked() {
-                        self.log("New Scene: scene document workflow is not implemented yet.");
+                    if ui.button("New Project  Ctrl+N").clicked() {
+                        self.request_new_project();
                         ui.close_menu();
                     }
-                    if ui.button("Save").clicked() {
-                        self.log("Save requested: scene serialization is scheduled for a later milestone.");
+                    if ui.button("Open Project…  Ctrl+O").clicked() {
+                        self.request_open_project();
+                        ui.close_menu();
+                    }
+                    ui.separator();
+                    if ui.button("Save  Ctrl+S").clicked() {
+                        self.save_project();
+                        ui.close_menu();
+                    }
+                    if ui.button("Save As…  Ctrl+Shift+S").clicked() {
+                        self.save_project_as();
+                        ui.close_menu();
+                    }
+                    ui.separator();
+                    if ui.button("New Scene").clicked() {
+                        self.add_scene();
                         ui.close_menu();
                     }
                     ui.separator();
@@ -292,14 +529,9 @@ impl AstraEditor {
     fn toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("editor_toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.button("＋ New").clicked() {
-                    self.log(
-                        "New project command selected (project wizard is not implemented yet).",
-                    );
-                }
-                if ui.button("Save").clicked() {
-                    self.log("Save requested (scene serialization is not implemented yet).");
-                }
+                if ui.button("＋ New").clicked() { self.request_new_project(); }
+                if ui.button("Open").clicked() { self.request_open_project(); }
+                if ui.button("Save").clicked() { self.save_project(); }
                 ui.separator();
                 if ui.button("▶ Play").clicked() {
                     self.log("Play requested (game launch is not implemented yet).");
@@ -337,7 +569,20 @@ impl AstraEditor {
                     self.gizmo_drag = None;
                 }
                 ui.separator();
-                ui.label("Scene: Untitled");
+                let scenes: Vec<(String, String)> = self.project.scenes.iter().map(|scene| (scene.id.clone(), scene.name.clone())).collect();
+                let active_name = self.project.scenes.iter().find(|scene| scene.id == self.project.active_scene_id).map(|scene| scene.name.clone()).unwrap_or_else(|| "No Scene".to_owned());
+                egui::ComboBox::from_id_source("active_project_scene")
+                    .selected_text(format!("Scene: {active_name}"))
+                    .show_ui(ui, |ui| {
+                        for (id, name) in &scenes {
+                            if ui.selectable_label(*id == self.project.active_scene_id, name).clicked() {
+                                self.switch_scene(id);
+                            }
+                        }
+                        ui.separator();
+                        if ui.button("＋ Add Scene").clicked() { self.add_scene(); }
+                    });
+                if self.is_project_dirty() { ui.label("●"); }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label("Windows · Editor 0.4");
                 });
@@ -349,8 +594,10 @@ impl AstraEditor {
 impl eframe::App for AstraEditor {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.handle_shortcuts(ctx);
+        self.autosave_if_needed(ctx);
         self.menu_bar(ctx);
         self.toolbar(ctx);
+        self.unsaved_changes_dialog(ctx);
 
         egui::TopBottomPanel::bottom("status_bar")
             .exact_height(22.0)
@@ -393,6 +640,10 @@ impl eframe::App for AstraEditor {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, DOCK_STATE_KEY, &self.dock_state);
         eframe::set_value(storage, EDITOR_STATE_KEY, &self.state);
+        eframe::set_value(storage, PROJECT_STATE_KEY, &self.project_snapshot());
+        if let Some(path) = &self.project_path {
+            eframe::set_value(storage, PROJECT_PATH_KEY, &path.to_string_lossy().to_string());
+        }
     }
 
     fn persist_egui_memory(&self) -> bool {
