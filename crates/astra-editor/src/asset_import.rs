@@ -1,4 +1,4 @@
-//! OBJ, glTF and GLB mesh import. Imported geometry is embedded in the .astra scene.
+//! OBJ, glTF, GLB and FBX mesh import. Imported geometry is embedded in the .astra scene.
 use astra_scene::MeshGeometry;
 use std::{fs, path::Path};
 
@@ -8,6 +8,7 @@ pub fn load_mesh(path: &Path) -> Result<MeshGeometry, String> {
     match extension.as_str() {
         "obj" => load_obj(path, source),
         "gltf" | "glb" => load_gltf(path, source),
+        "fbx" => load_fbx(path, source),
         other => Err(format!("Unsupported mesh format: .{other}")),
     }
 }
@@ -106,14 +107,65 @@ fn append_gltf_mesh(
         let primitive_indices: Vec<u32> = reader.read_indices()
             .map(|values| values.into_u32().collect())
             .unwrap_or_else(|| (0..primitive_positions.len() as u32).collect());
-        if primitive_indices.len() % 3 != 0 {
-            return Err("glTF triangle primitive has an invalid index count".to_owned());
+        if primitive_indices.len() % 3 != 0 || primitive_indices.iter().any(|index| *index as usize >= primitive_positions.len()) {
+            return Err("glTF triangle primitive has invalid indices".to_owned());
         }
         let base = positions.len() as u32;
         positions.extend(primitive_positions);
         indices.extend(primitive_indices.into_iter().map(|index| base + index));
     }
     Ok(())
+}
+
+fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
+    let filename = path.to_str().ok_or_else(|| "FBX path is not valid UTF-8".to_owned())?;
+    let options = ufbx::LoadOpts {
+        target_axes: ufbx::CoordinateAxes::right_handed_y_up(),
+        target_unit_meters: 1.0,
+        generate_missing_normals: true,
+        ..Default::default()
+    };
+    let scene = ufbx::load_file(filename, options)
+        .map_err(|error| format!("FBX import failed: {error}"))?;
+
+    let mut positions = Vec::<[f32; 3]>::new();
+    let mut indices = Vec::<u32>::new();
+
+    for node in &scene.nodes {
+        let Some(mesh) = node.mesh.as_ref() else { continue };
+        let matrix = node.geometry_to_world;
+        let transform = glam::Mat4::from_cols_array(&[
+            matrix.m00 as f32, matrix.m10 as f32, matrix.m20 as f32, 0.0,
+            matrix.m01 as f32, matrix.m11 as f32, matrix.m21 as f32, 0.0,
+            matrix.m02 as f32, matrix.m12 as f32, matrix.m22 as f32, 0.0,
+            matrix.m03 as f32, matrix.m13 as f32, matrix.m23 as f32, 1.0,
+        ]);
+
+        let mut triangulated = vec![0u32; mesh.max_face_triangles.saturating_mul(3)];
+        for face in &mesh.faces {
+            if face.num_indices < 3 { continue; }
+            let triangle_count = mesh.triangulate_face(&mut triangulated, *face) as usize;
+            let corner_count = triangle_count.saturating_mul(3);
+            if corner_count > triangulated.len() {
+                return Err("FBX triangulation returned an invalid index count".to_owned());
+            }
+            for &vertex_index in &triangulated[..corner_count] {
+                let vertex = mesh.vertex_position[vertex_index as usize];
+                let point = transform.transform_point3(glam::Vec3::new(
+                    vertex.x as f32, vertex.y as f32, vertex.z as f32,
+                ));
+                let next_index = u32::try_from(positions.len())
+                    .map_err(|_| "FBX mesh exceeds the supported vertex count".to_owned())?;
+                positions.push(point.to_array());
+                indices.push(next_index);
+            }
+        }
+    }
+
+    if indices.is_empty() {
+        return Err("FBX file contains no triangle mesh geometry".to_owned());
+    }
+    MeshGeometry::new(positions, indices, source).map_err(str::to_owned)
 }
 
 #[cfg(test)]
@@ -136,6 +188,14 @@ mod tests {
         let path = std::env::temp_dir().join(format!("astra-invalid-{}.obj", std::process::id()));
         fs::write(&path, "v 0 0 0\nf 1 2 3\n").unwrap();
         assert!(load_obj(&path, "invalid.obj".to_owned()).is_err());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn fbx_import_rejects_invalid_files_without_panicking() {
+        let path = std::env::temp_dir().join(format!("astra-invalid-{}.fbx", std::process::id()));
+        fs::write(&path, "not an FBX file").unwrap();
+        assert!(load_fbx(&path, "invalid.fbx".to_owned()).is_err());
         let _ = fs::remove_file(path);
     }
 }
