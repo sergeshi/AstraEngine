@@ -303,14 +303,23 @@ impl AstraEditor {
     }
 
     fn import_mesh(&mut self) {
+        if self.project_path.is_none() && !self.save_project_as() { return; }
         let Some(path) = rfd::FileDialog::new()
             .add_filter("3D Models", &["obj", "gltf", "glb", "fbx"])
             .pick_file() else { return; };
 
-        match asset_import::load_mesh(&path) {
+        let asset_root = self.project_path.as_ref().and_then(|p| p.parent()).unwrap_or(std::path::Path::new("."));
+        match asset_import::load_mesh(&path, Some(asset_root)) {
             Ok(geometry) => {
                 let source = geometry.source.clone();
                 let imported_material = geometry.imported_material.clone();
+                if let Some(relative_path) = imported_material.as_ref().and_then(|m| m.base_color_texture.clone()) {
+                    if !self.project.textures.iter().any(|t| t.relative_path == relative_path) {
+                        let name = std::path::Path::new(&relative_path).file_stem().and_then(|n| n.to_str()).unwrap_or("Imported Texture").to_owned();
+                        let id = format!("texture-import-{:x}-{}", std::process::id(), self.project.textures.len() + 1);
+                        self.project.textures.push(project::TextureAsset { id, name, relative_path });
+                    }
+                }
                 let vertex_count = geometry.positions.len();
                 let triangle_count = geometry.indices.len() / 3;
                 let default_name = path.file_stem().and_then(|value| value.to_str())
