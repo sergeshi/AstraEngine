@@ -1,6 +1,6 @@
 //! Versioned AstraEngine project container, validation and crash-safe persistence.
 
-use astra_scene::{EntityId, MeshComponent, MeshGeometry, Scene};
+use astra_scene::{EntityId, MeshComponent, Scene};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
@@ -355,6 +355,7 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use astra_scene::MeshGeometry;
 
     #[test]
     fn project_round_trip_preserves_multiple_scenes() {
