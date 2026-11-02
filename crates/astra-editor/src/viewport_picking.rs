@@ -1,5 +1,5 @@
 use crate::viewport_camera;
-use astra_scene::{EntityId, PrimitiveMesh, Scene};
+use astra_scene::{EntityId, Scene};
 use egui::{Pos2, Rect};
 use glam::{Mat4, Vec3, Vec4};
 
@@ -114,6 +114,7 @@ fn intersect_aabb(origin: Vec3, direction: Vec3, min: Vec3, max: Vec3) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+    use astra_scene::PrimitiveMesh;
 
     fn center_of(rect: Rect) -> Pos2 {
         rect.center()
