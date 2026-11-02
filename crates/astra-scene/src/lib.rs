@@ -224,10 +224,13 @@ pub struct Material {
     /// Project-relative path to the base-color image, if assigned.
     #[serde(default)]
     pub base_color_texture: Option<String>,
+    /// Project-relative glTF metallic-roughness map (G=roughness, B=metallic).
+    #[serde(default)]
+    pub metallic_roughness_texture: Option<String>,
 }
 impl Default for Material {
     fn default() -> Self {
-        Self { base_color: [0.72, 0.74, 0.78, 1.0], metallic: 0.0, roughness: 0.65, base_color_texture: None }
+        Self { base_color: [0.72, 0.74, 0.78, 1.0], metallic: 0.0, roughness: 0.65, base_color_texture: None, metallic_roughness_texture: None }
     }
 }
 
