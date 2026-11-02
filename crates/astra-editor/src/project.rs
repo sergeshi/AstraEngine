@@ -313,6 +313,25 @@ mod tests {
     }
 
     #[test]
+    fn second_save_keeps_previous_project_as_backup() {
+        let path = std::env::temp_dir().join(format!("astra-backup-{}-{}.astra", std::process::id(), now_secs()));
+        let backup = path.parent().unwrap().join(format!(".{}.bak", path.file_name().unwrap().to_string_lossy()));
+        let mut project = ProjectDocument::new("Before");
+        project.save_atomic(&path).unwrap();
+        project.project_name = "After".to_owned();
+        project.save_atomic(&path).unwrap();
+
+        assert!(backup.exists(), "backup should remain after a successful second save");
+        let previous = ProjectDocument::load(&backup).unwrap();
+        let current = ProjectDocument::load(&path).unwrap();
+        assert_eq!(previous.project_name, "Before");
+        assert_eq!(current.project_name, "After");
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
+    }
+
+    #[test]
     fn future_project_versions_are_rejected() {
         let mut project = ProjectDocument::new("Future");
         project.format_version = CURRENT_FORMAT_VERSION + 1;
