@@ -127,8 +127,9 @@ impl GpuViewport {
                 };
                 let texture = texture_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
                 gl.active_texture(glow::TEXTURE0);
+                let has_texture = texture.is_some();
                 gl.bind_texture(glow::TEXTURE_2D, texture);
-                gl.uniform_1_i32(Some(&self.has_texture), if texture.is_some() { 1 } else { 0 });
+                gl.uniform_1_i32(Some(&self.has_texture), if has_texture { 1 } else { 0 });
                 gl.draw_arrays(glow::TRIANGLES, 0, vertices.len() as i32);
             }
             gl.bind_texture(glow::TEXTURE_2D, None);
