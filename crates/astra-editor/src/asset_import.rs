@@ -270,7 +270,7 @@ mod tests {
     fn obj_import_triangulates_faces_and_supports_negative_indices() {
         let path = std::env::temp_dir().join(format!("astra-import-{}.obj", std::process::id()));
         fs::write(&path, "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nf -4 -3 -2 -1\n").unwrap();
-        let mesh = load_obj(&path, "quad.obj".to_owned()).unwrap();
+        let mesh = load_obj(&path, "quad.obj".to_owned(), None).unwrap();
         assert_eq!(mesh.positions.len(), 4);
         assert_eq!(mesh.indices, vec![0, 1, 2, 0, 2, 3]);
         assert_eq!(mesh.bounds_max, [1.0, 1.0, 0.0]);
@@ -281,7 +281,7 @@ mod tests {
     fn obj_import_rejects_out_of_range_face_indices() {
         let path = std::env::temp_dir().join(format!("astra-invalid-{}.obj", std::process::id()));
         fs::write(&path, "v 0 0 0\nf 1 2 3\n").unwrap();
-        assert!(load_obj(&path, "invalid.obj".to_owned()).is_err());
+        assert!(load_obj(&path, "invalid.obj".to_owned(), None).is_err());
         let _ = fs::remove_file(path);
     }
 
