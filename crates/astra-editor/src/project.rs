@@ -1,6 +1,6 @@
 //! Versioned AstraEngine project container, validation and crash-safe persistence.
 
-use astra_scene::{EntityId, MeshComponent, Scene};
+use astra_scene::{EntityId, MeshComponent, MeshGeometry, Scene};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
@@ -293,7 +293,8 @@ impl ProjectDocument {
 
         // Compatibility migration: early editor builds saved a bare Scene JSON.
         if value.get("scenes").is_none() && value.get("entities").is_some() {
-            let scene: Scene = serde_json::from_value(value).map_err(|error| ProjectError::Parse(error.to_string()))?;
+            let mut scene: Scene = serde_json::from_value(value).map_err(|error| ProjectError::Parse(error.to_string()))?;
+            normalize_legacy_mesh_attributes(&mut scene);
             let mut project = Self::new(path.file_stem().and_then(|s| s.to_str()).unwrap_or("Imported Project"));
             project.scenes[0].scene = scene;
             return Ok(project);
@@ -301,6 +302,7 @@ impl ProjectDocument {
 
         let mut project: Self = serde_json::from_value(value)
             .map_err(|error| ProjectError::Parse(error.to_string()))?;
+        for entry in &mut project.scenes { normalize_legacy_mesh_attributes(&mut entry.scene); }
         if project.format_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(project.format_version));
         }
@@ -336,6 +338,21 @@ fn issue(location: &str, message: &str) -> ValidationIssue {
     ValidationIssue { location: location.to_owned(), message: message.to_owned() }
 }
 
+fn normalize_legacy_mesh_attributes(scene: &mut Scene) {
+    let ids: Vec<EntityId> = scene.iter().map(|entity| entity.id).collect();
+    for id in ids {
+        let Some(entity) = scene.get_mut(id) else { continue };
+        let Some(MeshComponent::Imported(mesh)) = entity.mesh_component.as_mut() else { continue };
+        if mesh.normals.len() == mesh.positions.len() && mesh.uvs.len() == mesh.positions.len() { continue; }
+        if let Ok(mut normalized) = MeshGeometry::new_with_attributes(
+            mesh.positions.clone(), mesh.indices.clone(), mesh.normals.clone(), mesh.uvs.clone(), mesh.source.clone(),
+        ) {
+            normalized.imported_material = mesh.imported_material.clone();
+            *mesh = normalized;
+        }
+    }
+}
+
 fn material_is_valid(material: &astra_scene::Material) -> bool {
     material.base_color.iter().all(|value| value.is_finite())
         && material.metallic.is_finite() && material.roughness.is_finite()
@@ -365,9 +382,9 @@ fn validate_scene(scene: &Scene, location: &str, issues: &mut Vec<ValidationIssu
             if mesh.positions.is_empty() || mesh.indices.is_empty() || mesh.indices.len() % 3 != 0
                 || mesh.positions.iter().flatten().any(|value| !value.is_finite())
                 || mesh.indices.iter().any(|index| *index as usize >= mesh.positions.len())
-                || (!mesh.normals.is_empty() && mesh.normals.len() != mesh.positions.len())
+                || mesh.normals.len() != mesh.positions.len()
                 || mesh.normals.iter().flatten().any(|value| !value.is_finite())
-                || (!mesh.uvs.is_empty() && mesh.uvs.len() != mesh.positions.len())
+                || mesh.uvs.len() != mesh.positions.len()
                 || mesh.uvs.iter().flatten().any(|value| !value.is_finite())
                 || mesh.bounds_min.iter().chain(mesh.bounds_max.iter()).any(|value| !value.is_finite())
             {
