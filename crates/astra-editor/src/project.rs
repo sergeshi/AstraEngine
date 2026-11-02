@@ -543,6 +543,34 @@ mod tests {
     }
 
     #[test]
+    fn project_round_trips_texture_and_material_assets() {
+        let path = std::env::temp_dir().join(format!("astra-assets-{}.astra", std::process::id()));
+        let mut project = ProjectDocument::new("Assets Test");
+        project.textures.push(TextureAsset { id: "tex-1".to_owned(), name: "Albedo".to_owned(), relative_path: "Assets/Textures/albedo.png".to_owned() });
+        project.materials.push(MaterialAsset { id: "mat-1".to_owned(), name: "Paint".to_owned(), material: astra_scene::Material::default() });
+        let scene = project.active_scene_mut().unwrap();
+        let entity = scene.spawn("Textured Cube");
+        let object = scene.get_mut(entity).unwrap();
+        object.material = Some(astra_scene::Material { base_color_texture: Some("Assets/Textures/albedo.png".to_owned()), ..Default::default() });
+        object.material_asset_id = Some("mat-1".to_owned());
+        project.save_atomic(&path).unwrap();
+        let loaded = ProjectDocument::load(&path).unwrap();
+        assert_eq!(loaded.textures, project.textures);
+        assert_eq!(loaded.materials, project.materials);
+        assert_eq!(loaded.active_scene().unwrap().get(entity).unwrap().material_asset_id.as_deref(), Some("mat-1"));
+        let _ = fs::remove_file(&path);
+        let backup = path.parent().unwrap().join(format!(".{}.bak", path.file_name().unwrap().to_string_lossy()));
+        let _ = fs::remove_file(backup);
+    }
+
+    #[test]
+    fn project_rejects_texture_paths_that_escape_project_root() {
+        let mut project = ProjectDocument::new("Unsafe Texture");
+        project.textures.push(TextureAsset { id: "tex".to_owned(), name: "Bad".to_owned(), relative_path: "../outside.png".to_owned() });
+        assert!(!project.validate().is_empty());
+    }
+
+    #[test]
     fn future_project_versions_are_rejected() {
         let mut project = ProjectDocument::new("Future");
         project.format_version = CURRENT_FORMAT_VERSION + 1;
