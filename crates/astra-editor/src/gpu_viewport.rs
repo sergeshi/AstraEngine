@@ -205,7 +205,8 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
             }
         };
         for point in mesh.triangle_vertices() {
-            let position = transform.transform_point3(Vec3::from_array(point));
+            let pivot = Vec3::from_array(entity.pivot);
+            let position = transform.transform_point3(Vec3::from_array(point) - pivot);
             vertices.push(Vertex { position: position.to_array(), color });
         }
     }
