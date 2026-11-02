@@ -278,6 +278,35 @@ mod tests {
     }
 
     #[test]
+    fn obj_import_preserves_vertex_normals_and_uvs() {
+        let path = std::env::temp_dir().join(format!("astra-attrs-{}.obj", std::process::id()));
+        fs::write(&path, "v 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nvn 0 0 1\nf 1/1/1 2/2/1 3/3/1\n").unwrap();
+        let mesh = load_obj(&path, "attrs.obj".to_owned(), None).unwrap();
+        assert_eq!(mesh.uvs, vec![[0.0,0.0],[1.0,0.0],[0.0,1.0]]);
+        assert_eq!(mesh.normals, vec![[0.0,0.0,1.0];3]);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn obj_mtl_import_preserves_pbr_factors_and_copies_base_color_map() {
+        let root = std::env::temp_dir().join(format!("astra-mtl-{}", std::process::id()));
+        let _ = fs::create_dir_all(&root);
+        let obj = root.join("asset.obj");
+        let mtl = root.join("asset.mtl");
+        let texture = root.join("albedo.png");
+        fs::write(&texture, b"not decoded here").unwrap();
+        fs::write(&mtl, "newmtl Sample\nKd 0.2 0.4 0.6\nPm 0.7\nPr 0.3\nmap_Kd albedo.png\n").unwrap();
+        fs::write(&obj, "mtllib asset.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n").unwrap();
+        let mesh = load_obj(&obj, "asset.obj".to_owned(), Some(&root)).unwrap();
+        let material = mesh.imported_material.unwrap();
+        assert_eq!(material.base_color[..3], [0.2,0.4,0.6]);
+        assert!((material.metallic - 0.7).abs() < 1.0e-6);
+        assert!((material.roughness - 0.3).abs() < 1.0e-6);
+        assert!(material.base_color_texture.as_deref().is_some_and(|p| root.join(p).exists()));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn obj_import_rejects_out_of_range_face_indices() {
         let path = std::env::temp_dir().join(format!("astra-invalid-{}.obj", std::process::id()));
         fs::write(&path, "v 0 0 0\nf 1 2 3\n").unwrap();
