@@ -14,7 +14,7 @@ pub const CURRENT_FORMAT_VERSION: u32 = 2;
 const PROJECT_MAGIC: &str = "ASTRA_ENGINE_PROJECT";
 const AUTOSAVE_INTERVAL_SECS: u64 = 60;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProjectDocument {
     #[serde(default = "legacy_version")]
     pub format_version: u32,
@@ -28,7 +28,7 @@ pub struct ProjectDocument {
     pub scenes: Vec<SceneDocument>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SceneDocument {
     pub id: String,
     pub name: String,
