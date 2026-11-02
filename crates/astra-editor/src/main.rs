@@ -175,6 +175,7 @@ struct AstraEditor {
     state: EditorState,
     gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
     project: &'a mut ProjectDocument,
+    texture_root: Option<PathBuf>,
     camera_yaw: f32,
     camera_pitch: f32,
     camera_distance: f32,
@@ -837,6 +838,7 @@ impl eframe::App for AstraEditor {
                 state: &mut self.state,
                 gpu_viewport: self.gpu_viewport.clone(),
                 project: &mut self.project,
+                texture_root: self.project_path.as_ref().and_then(|p| p.parent()).map(Path::to_path_buf),
                 camera_yaw: &mut self.camera_yaw,
                 camera_pitch: &mut self.camera_pitch,
                 camera_distance: &mut self.camera_distance,
@@ -1146,6 +1148,7 @@ impl EditorTabViewer<'_> {
             let target = *self.camera_target;
             let scene = self.state.scene.clone();
             let selected_entity = self.state.selected_entity;
+            let texture_root = self.texture_root.clone();
             ui.painter().add(egui::PaintCallback {
                 rect,
                 callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
@@ -1161,6 +1164,7 @@ impl EditorTabViewer<'_> {
                             target,
                             &scene,
                             selected_entity,
+                            texture_root.as_deref(),
                         );
                     }
                 })),
