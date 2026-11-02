@@ -1176,7 +1176,7 @@ impl EditorTabViewer<'_> {
                         let mut world_min = Vec3::splat(f32::INFINITY);
                         let mut world_max = Vec3::splat(f32::NEG_INFINITY);
                         for x in [min[0], max[0]] { for y in [min[1], max[1]] { for z in [min[2], max[2]] {
-                            let p = matrix.transform_point3(Vec3::new(x,y,z));
+                            let p = matrix.transform_point3(Vec3::new(x,y,z) - Vec3::from_array(entity.pivot));
                             world_min = world_min.min(p); world_max = world_max.max(p);
                         } } }
                         ui.label(format!("World Min: [{:.2}, {:.2}, {:.2}]", world_min.x, world_min.y, world_min.z));
