@@ -316,6 +316,19 @@ mod tests {
         let json=serde_json::to_string(&scene).unwrap();
         assert_eq!(serde_json::from_str::<Scene>(&json).unwrap(),scene);
     }
+    #[test] fn legacy_scene_without_pivot_or_material_still_loads() {
+        let mut scene=Scene::new();
+        let id=scene.spawn_cube("Legacy Cube");
+        let mut value=serde_json::to_value(&scene).unwrap();
+        let key=id.0.to_string();
+        let entity=value["entities"][&key].as_object_mut().unwrap();
+        entity.remove("pivot");
+        entity.remove("material");
+        let loaded:Scene=serde_json::from_value(value).unwrap();
+        assert_eq!(loaded.get(id).unwrap().mesh,Some(PrimitiveMesh::Cube));
+        assert_eq!(loaded.get(id).unwrap().pivot,[0.0;3]);
+        assert_eq!(loaded.get(id).unwrap().material,None);
+    }
     #[test] fn world_matrix_inherits_parent_translation_rotation_and_scale() {
         let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C");
         s.get_mut(p).unwrap().transform=Transform{translation:[3.0,0.0,0.0],rotation:[0.0,0.0,std::f32::consts::FRAC_PI_2],scale:[2.0;3]};
