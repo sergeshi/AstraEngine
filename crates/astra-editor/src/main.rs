@@ -5,7 +5,7 @@ mod viewport_gizmo;
 mod viewport_picking;
 
 use astra_core::EngineInfo;
-use astra_scene::{EntityId, Scene};
+use astra_scene::{EntityId, PrimitiveMesh, Scene};
 use egui::{Id, Sense, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use glam::{EulerRot, Quat, Vec3};
@@ -631,6 +631,24 @@ impl AstraEditor {
                 if ui.button("＋ New").clicked() { self.request_new_project(); }
                 if ui.button("Open").clicked() { self.request_open_project(); }
                 if ui.button("Save").clicked() { self.save_project(); }
+                ui.menu_button("＋ Primitive", |ui| {
+                    for (label, mesh) in [
+                        ("Cube", PrimitiveMesh::Cube),
+                        ("Sphere", PrimitiveMesh::Sphere),
+                        ("Plane", PrimitiveMesh::Plane),
+                        ("Cylinder", PrimitiveMesh::Cylinder),
+                        ("Capsule", PrimitiveMesh::Capsule),
+                    ] {
+                        if ui.button(label).clicked() {
+                            self.state.checkpoint();
+                            let id = self.state.scene.spawn_primitive(label, mesh);
+                            self.state.select(id, false);
+                            self.project_dirty = true;
+                            self.log(format!("Created {label} primitive."));
+                            ui.close_menu();
+                        }
+                    }
+                });
                 ui.separator();
                 if ui.button("▶ Play").clicked() {
                     self.log("Play requested (game launch is not implemented yet).");
@@ -1139,11 +1157,41 @@ impl EditorTabViewer<'_> {
             self.state.redo_stack.clear();
         }
 
-        egui::CollapsingHeader::new("Components")
+        egui::CollapsingHeader::new("Pivot")
+            .default_open(false)
+            .show(ui, |ui| {
+                vector3_editor(ui, "Local Offset", &mut entity.pivot);
+            });
+
+        egui::CollapsingHeader::new("Mesh / Bounds")
             .default_open(true)
             .show(ui, |ui| {
+                if let Some(mesh) = entity.mesh {
+                    ui.label(format!("Primitive: {mesh:?}"));
+                    let (min, max) = mesh.local_bounds();
+                    ui.label(format!("Local Min: [{:.2}, {:.2}, {:.2}]", min[0], min[1], min[2]));
+                    ui.label(format!("Local Max: [{:.2}, {:.2}, {:.2}]", max[0], max[1], max[2]));
+                    if let Some(matrix) = self.state.scene.world_matrix(selected) {
+                        let mut world_min = Vec3::splat(f32::INFINITY);
+                        let mut world_max = Vec3::splat(f32::NEG_INFINITY);
+                        for x in [min[0], max[0]] { for y in [min[1], max[1]] { for z in [min[2], max[2]] {
+                            let p = matrix.transform_point3(Vec3::new(x,y,z));
+                            world_min = world_min.min(p); world_max = world_max.max(p);
+                        } } }
+                        ui.label(format!("World Min: [{:.2}, {:.2}, {:.2}]", world_min.x, world_min.y, world_min.z));
+                        ui.label(format!("World Max: [{:.2}, {:.2}, {:.2}]", world_max.x, world_max.y, world_max.z));
+                    }
+                } else {
+                    ui.weak("No mesh component.");
+                }
+            });
+
+        egui::CollapsingHeader::new("Components")
+            .default_open(false)
+            .show(ui, |ui| {
                 ui.label("Transform");
-                ui.weak("Additional components are not implemented yet.");
+                ui.label("Mesh");
+                ui.weak("Camera, light, physics and script components are planned for later milestones.");
             });
     }
 
