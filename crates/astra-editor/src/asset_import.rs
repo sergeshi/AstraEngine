@@ -2,18 +2,18 @@
 use astra_scene::{Material, MeshGeometry};
 use std::{fs, path::Path};
 
-pub fn load_mesh(path: &Path) -> Result<MeshGeometry, String> {
+pub fn load_mesh(path: &Path, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
     let source = path.file_name().and_then(|value| value.to_str()).unwrap_or("Imported Mesh").to_owned();
     match extension.as_str() {
-        "obj" => load_obj(path, source),
-        "gltf" | "glb" => load_gltf(path, source),
+        "obj" => load_obj(path, source, asset_root),
+        "gltf" | "glb" => load_gltf(path, source, asset_root),
         "fbx" => load_fbx(path, source),
         other => Err(format!("Unsupported mesh format: .{other}")),
     }
 }
 
-fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
+fn load_obj(path: &Path, source: String, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
     use std::collections::HashMap;
     let text = fs::read_to_string(path).map_err(|error| format!("Cannot read OBJ: {error}"))?;
     let mut source_positions = Vec::<[f32; 3]>::new();
@@ -97,8 +97,31 @@ fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
     Ok(geometry)
 }
 
-fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
-    let (document, buffers, _images) = gltf::import(path).map_err(|error| format!("glTF import failed: {error}"))?;
+fn safe_asset_stem(name: &str) -> String {
+    name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()
+}
+
+fn copy_texture_file(source: &Path, root: &Path, name: &str) -> Option<String> {
+    let directory = root.join("Assets").join("Textures");
+    fs::create_dir_all(&directory).ok()?;
+    let extension = source.extension().and_then(|e| e.to_str()).unwrap_or("png");
+    let stem = safe_asset_stem(Path::new(name).file_stem()?.to_str()?);
+    let filename = format!("{stem}-{}.{}", std::process::id(), extension);
+    fs::copy(source, directory.join(&filename)).ok()?;
+    Some(format!("Assets/Textures/{filename}"))
+}
+
+fn save_texture_bytes(bytes: &[u8], width: u32, height: u32, color: image::ColorType, root: &Path, name: &str) -> Option<String> {
+    let directory = root.join("Assets").join("Textures");
+    fs::create_dir_all(&directory).ok()?;
+    let filename = format!("{}.png", safe_asset_stem(name));
+    let destination = directory.join(&filename);
+    image::save_buffer(&destination, bytes, width, height, color).ok()?;
+    Some(format!("Assets/Textures/{filename}"))
+}
+
+fn load_gltf(path: &Path, source: String, asset_root: Option<&Path>) -> Result<MeshGeometry, String> {
+    let (document, buffers, images) = gltf::import(path).map_err(|error| format!("glTF import failed: {error}"))?;
     let mut positions = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
     let mut normals = Vec::<[f32; 3]>::new();
@@ -107,7 +130,7 @@ fn load_gltf(path: &Path, source: String) -> Result<MeshGeometry, String> {
 
     if let Some(scene) = document.default_scene().or_else(|| document.scenes().next()) {
         for node in scene.nodes() {
-            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material)?;
+            append_gltf_node(node, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material, &images, asset_root)?;
         }
     } else {
         for mesh in document.meshes() {
@@ -128,14 +151,16 @@ fn append_gltf_node(
     normals: &mut Vec<[f32; 3]>,
     uvs: &mut Vec<[f32; 2]>,
     imported_material: &mut Option<Material>,
+    images: &[gltf::image::Data],
+    asset_root: Option<&Path>,
 ) -> Result<(), String> {
     let local_transform = glam::Mat4::from_cols_array_2d(&node.transform().matrix());
     let world_transform = parent_transform * local_transform;
     if let Some(mesh) = node.mesh() {
-        append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs, imported_material)?;
+        append_gltf_mesh(mesh, world_transform, buffers, positions, indices, normals, uvs, imported_material, images, asset_root)?;
     }
     for child in node.children() {
-        append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs, imported_material)?;
+        append_gltf_node(child, world_transform, buffers, positions, indices, normals, uvs, imported_material, images, asset_root)?;
     }
     Ok(())
 }
@@ -149,12 +174,22 @@ fn append_gltf_mesh(
     normals: &mut Vec<[f32; 3]>,
     uvs: &mut Vec<[f32; 2]>,
     imported_material: &mut Option<Material>,
+    images: &[gltf::image::Data],
+    asset_root: Option<&Path>,
 ) -> Result<(), String> {
     for primitive in mesh.primitives() {
         if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
         if imported_material.is_none() {
             let pbr = primitive.material().pbr_metallic_roughness();
-            *imported_material = Some(Material { base_color: pbr.base_color_factor(), metallic: pbr.metallic_factor(), roughness: pbr.roughness_factor() });
+            let mut material = Material { base_color: pbr.base_color_factor(), metallic: pbr.metallic_factor(), roughness: pbr.roughness_factor(), base_color_texture: None };
+            if let (Some(root), Some(info)) = (asset_root, pbr.base_color_texture()) {
+                let image_index = info.texture().source().index();
+                if let Some(data) = images.get(image_index) {
+                    let color_type = match data.format { gltf::image::Format::R8 => image::ColorType::L8, gltf::image::Format::R8G8 => image::ColorType::La8, gltf::image::Format::R8G8B8 => image::ColorType::Rgb8, gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8, _ => image::ColorType::Rgba8 };
+                    if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("{}-base-color-{image_index}", source)) { material.base_color_texture = Some(relative); }
+                }
+            }
+            *imported_material = Some(material);
         }
         let reader = primitive.reader(|buffer| Some(buffers[buffer.index()].0.as_slice()));
         let primitive_positions: Vec<[f32; 3]> = reader.read_positions()
