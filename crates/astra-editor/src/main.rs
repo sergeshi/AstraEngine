@@ -1113,7 +1113,7 @@ impl EditorTabViewer<'_> {
                     let projected: Vec<_> = corners.iter().map(|p| viewport_gizmo::project(camera_matrix, rect, matrix.transform_point3(*p-pivot))).collect();
                     for (a,b) in edges {
                         if let (Some(a),Some(b)) = (projected[a],projected[b]) {
-                            ui.painter().line_segment([a,b], egui::Stroke::new(1.2, egui::Color32::from_rgb(245,190,65)));
+                            ui.painter().line_segment([a,b], egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(245,190,65)));
                         }
                     }
                 }
