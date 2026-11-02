@@ -1,7 +1,7 @@
 #![allow(unsafe_code)]
 
 use crate::viewport_camera;
-use astra_scene::{EntityId, PrimitiveMesh, Scene};
+use astra_scene::{EntityId, MeshComponent, PrimitiveMesh, Scene};
 use eframe::glow::{self, HasContext};
 use glam::Vec3;
 
@@ -191,14 +191,17 @@ fn build_grid_vertices() -> Vec<Vertex> {
 fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec<Vertex> {
     let mut vertices = build_grid_vertices();
     for entity in scene.iter() {
-        let Some(mesh) = entity.mesh else { continue; };
+        let Some(points) = entity.mesh_component.as_ref().map(MeshComponent::triangle_vertices)
+            .or_else(|| entity.mesh.map(PrimitiveMesh::triangle_vertices)) else { continue; };
         let Some(transform) = scene.world_matrix(entity.id) else { continue; };
         let color = if selected_entity == Some(entity.id) {
             [0.98, 0.78, 0.28]
         } else if let Some(material) = entity.material {
             [material.base_color[0], material.base_color[1], material.base_color[2]]
+        } else if entity.mesh_component.as_ref().is_some_and(|component| matches!(component, MeshComponent::Imported(_))) {
+            [0.66, 0.72, 0.82]
         } else {
-            match mesh {
+            match entity.mesh.unwrap_or(PrimitiveMesh::Cube) {
                 PrimitiveMesh::Cube => [0.55, 0.63, 0.78],
                 PrimitiveMesh::Sphere => [0.30, 0.72, 0.68],
                 PrimitiveMesh::Plane => [0.72, 0.62, 0.36],
@@ -206,7 +209,7 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
                 PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
             }
         };
-        for point in mesh.triangle_vertices() {
+        for point in points {
             let pivot = Vec3::from_array(entity.pivot);
             let position = transform.transform_point3(Vec3::from_array(point) - pivot);
             vertices.push(Vertex { position: position.to_array(), color });
