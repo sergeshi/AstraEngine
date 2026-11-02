@@ -354,7 +354,10 @@ impl AstraEditor {
     }
 
     fn save_project_as(&mut self) -> bool {
-        let default_name = format!("{}.astra", self.project.project_name.replace(['/', '\\\\', ':', '*', '?', '"', '<', '>', '|'], "_"));
+        let safe_name: String = self.project.project_name.chars()
+            .map(|ch| if matches!(ch, '/' | '\\\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { ch })
+            .collect();
+        let default_name = format!("{safe_name}.astra");
         let Some(path) = rfd::FileDialog::new()
             .add_filter("AstraEngine Project", &["astra"])
             .set_file_name(&default_name)
@@ -362,6 +365,9 @@ impl AstraEditor {
         let mut project = self.project_snapshot();
         match project.save_atomic(&path) {
             Ok(()) => {
+                if let Some(name) = path.file_stem().and_then(|value| value.to_str()) {
+                    project.project_name = name.to_owned();
+                }
                 self.project = project;
                 self.project_path = Some(path.clone());
                 self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
@@ -393,6 +399,7 @@ impl AstraEditor {
     }
 
     fn autosave_if_needed(&mut self, ctx: &egui::Context) {
+        ctx.request_repaint_after(std::time::Duration::from_secs(5));
         if !self.is_project_dirty() || !ProjectDocument::autosave_due(self.last_autosave) { return; }
         let mut project = self.project_snapshot();
         match project.save_atomic(&ProjectDocument::autosave_path()) {
@@ -402,7 +409,6 @@ impl AstraEditor {
             }
             Err(error) => self.log(format!("Autosave failed: {error}")),
         }
-        ctx.request_repaint_after(std::time::Duration::from_secs(5));
     }
 
     fn unsaved_changes_dialog(&mut self, ctx: &egui::Context) {
