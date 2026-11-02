@@ -1135,6 +1135,7 @@ impl EditorTabViewer<'_> {
             return;
         };
         let before = self.state.scene.clone();
+        let selected_world_matrix = self.state.scene.world_matrix(selected);
         let Some(entity) = self.state.scene.get_mut(selected) else {
             ui.weak("Selected entity no longer exists.");
             return;
@@ -1171,7 +1172,7 @@ impl EditorTabViewer<'_> {
                     let (min, max) = mesh.local_bounds();
                     ui.label(format!("Local Min: [{:.2}, {:.2}, {:.2}]", min[0], min[1], min[2]));
                     ui.label(format!("Local Max: [{:.2}, {:.2}, {:.2}]", max[0], max[1], max[2]));
-                    if let Some(matrix) = self.state.scene.world_matrix(selected) {
+                    if let Some(matrix) = selected_world_matrix {
                         let mut world_min = Vec3::splat(f32::INFINITY);
                         let mut world_max = Vec3::splat(f32::NEG_INFINITY);
                         for x in [min[0], max[0]] { for y in [min[1], max[1]] { for z in [min[2], max[2]] {
