@@ -426,6 +426,23 @@ mod tests {
         assert!(MeshGeometry::new(vec![[0.0; 3]], vec![0, 1, 0], "bad.obj").is_err());
         assert!(MeshGeometry::new(vec![[f32::NAN, 0.0, 0.0]], vec![0, 0, 0], "bad.obj").is_err());
     }
+
+    #[test]
+    fn duplicate_preserves_imported_mesh_component() {
+        let geometry = MeshGeometry::new(
+            vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            vec![0, 1, 2],
+            "triangle.obj",
+        ).unwrap();
+        let mut scene = Scene::new();
+        let original = scene.spawn("Imported");
+        scene.get_mut(original).unwrap().mesh_component = Some(MeshComponent::Imported(geometry));
+        let duplicate = scene.duplicate_subtree(original).unwrap();
+        assert_eq!(
+            scene.get(duplicate).unwrap().mesh_component,
+            scene.get(original).unwrap().mesh_component
+        );
+    }
     #[test] fn world_matrix_inherits_parent_translation_rotation_and_scale() {
         let mut s=Scene::new(); let p=s.spawn("P"); let c=s.spawn_cube("C");
         s.get_mut(p).unwrap().transform=Transform{translation:[3.0,0.0,0.0],rotation:[0.0,0.0,std::f32::consts::FRAC_PI_2],scale:[2.0;3]};
