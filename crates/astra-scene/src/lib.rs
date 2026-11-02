@@ -397,6 +397,7 @@ mod tests {
         let entity=value["entities"][key.as_str()].as_object_mut().unwrap();
         entity.remove("pivot");
         entity.remove("material");
+        entity.remove("mesh_component");
         let loaded:Scene=serde_json::from_value(value).unwrap();
         assert_eq!(loaded.get(id).unwrap().mesh,Some(PrimitiveMesh::Cube));
         assert_eq!(loaded.get(id).unwrap().pivot,[0.0;3]);
