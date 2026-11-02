@@ -13,7 +13,7 @@ use gpu_viewport::GpuViewport;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use viewport_picking::pick_entity;
-use project::ProjectDocument;
+use project::{ProjectDocument, SceneTemplate};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -185,6 +185,8 @@ struct AstraEditor {
     project_dirty: bool,
     last_autosave: SystemTime,
     pending_action: Option<PendingAction>,
+    scene_name_dialog: Option<(String, String)>,
+    scene_delete_confirmation: Option<String>,
 }
 
 impl AstraEditor {
@@ -256,6 +258,8 @@ impl AstraEditor {
             project_dirty: was_recovered,
             last_autosave: SystemTime::now(),
             pending_action: None,
+            scene_name_dialog: None,
+            scene_delete_confirmation: None,
         }
     }
 
@@ -393,12 +397,88 @@ impl AstraEditor {
     }
 
     fn add_scene(&mut self) {
-        if let Some(scene) = self.project.active_scene_mut() { *scene = self.state.scene.clone(); }
+        self.add_scene_from_template(SceneTemplate::Default);
+    }
+
+    fn add_scene_from_template(&mut self, template: SceneTemplate) {
+        self.store_active_scene();
         let next_scene_number = self.project.scenes.len() + 1;
-        self.project.add_scene(format!("Scene {next_scene_number}"));
+        let name = format!("Scene {next_scene_number}");
+        self.project.add_scene_from_template(name, template);
         self.project_dirty = true;
         self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
-        self.log("Added a new scene.");
+        self.log("Added a new scene from template.");
+    }
+
+    fn store_active_scene(&mut self) {
+        if let Some(scene) = self.project.active_scene_mut() {
+            *scene = self.state.scene.clone();
+        }
+    }
+
+    fn duplicate_active_scene(&mut self) {
+        self.store_active_scene();
+        let current_id = self.project.active_scene_id.clone();
+        if self.project.duplicate_scene(&current_id).is_some() {
+            self.project_dirty = true;
+            self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
+            self.log("Duplicated scene, including its hierarchy and object transforms.");
+        }
+    }
+
+    fn rename_scene(&mut self, id: &str, name: String) {
+        if self.project.rename_scene(id, name) {
+            self.project_dirty = true;
+            self.log("Scene renamed.");
+        } else {
+            self.log("Scene name cannot be empty.");
+        }
+    }
+
+    fn delete_scene(&mut self, id: &str) {
+        self.store_active_scene();
+        if self.project.remove_scene(id) {
+            self.project_dirty = true;
+            self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
+            self.log("Scene deleted.");
+        } else {
+            self.log("Cannot delete the last scene in a project.");
+        }
+    }
+
+    fn scene_management_dialogs(&mut self, ctx: &egui::Context) {
+        if let Some((scene_id, mut name)) = self.scene_name_dialog.take() {
+            let mut apply = false;
+            let mut cancel = false;
+            egui::Window::new("Rename Scene").collapsible(false).resizable(false).show(ctx, |ui| {
+                ui.label("Scene name");
+                ui.text_edit_singleline(&mut name);
+                ui.horizontal(|ui| {
+                    if ui.button("Rename").clicked() { apply = true; }
+                    if ui.button("Cancel").clicked() { cancel = true; }
+                });
+            });
+            if apply { self.rename_scene(&scene_id, name); }
+            else if !cancel { self.scene_name_dialog = Some((scene_id, name)); }
+        }
+
+        if let Some(scene_id) = self.scene_delete_confirmation.clone() {
+            let scene_name = self.project.scenes.iter().find(|scene| scene.id == scene_id)
+                .map(|scene| scene.name.clone()).unwrap_or_else(|| "Scene".to_owned());
+            let mut confirm = false;
+            let mut cancel = false;
+            egui::Window::new("Delete Scene?").collapsible(false).resizable(false).show(ctx, |ui| {
+                ui.label(format!("Delete '{scene_name}'? This cannot be undone."));
+                ui.horizontal(|ui| {
+                    if ui.button("Delete").clicked() { confirm = true; }
+                    if ui.button("Cancel").clicked() { cancel = true; }
+                });
+            });
+            if confirm {
+                self.scene_delete_confirmation = None;
+                self.delete_scene(&scene_id);
+            } else if cancel { self.scene_delete_confirmation = None; }
+        }
     }
 
     fn switch_scene(&mut self, id: &str) {
@@ -591,16 +671,41 @@ impl AstraEditor {
                 ui.label(format!("Project: {}", self.project.project_name));
                 let scenes: Vec<(String, String)> = self.project.scenes.iter().map(|scene| (scene.id.clone(), scene.name.clone())).collect();
                 let active_name = self.project.scenes.iter().find(|scene| scene.id == self.project.active_scene_id).map(|scene| scene.name.clone()).unwrap_or_else(|| "No Scene".to_owned());
-                egui::ComboBox::from_id_source("active_project_scene")
+                egui::ComboBox::from_id_salt("active_project_scene")
                     .selected_text(format!("Scene: {active_name}"))
                     .show_ui(ui, |ui| {
                         for (id, name) in &scenes {
-                            if ui.selectable_label(*id == self.project.active_scene_id, name).clicked() {
-                                self.switch_scene(id);
-                            }
+                            ui.horizontal(|ui| {
+                                if ui.selectable_label(*id == self.project.active_scene_id, name).clicked() {
+                                    self.switch_scene(id);
+                                }
+                                ui.menu_button("⋯", |ui| {
+                                    if ui.button("Rename").clicked() {
+                                        self.scene_name_dialog = Some((id.clone(), name.clone()));
+                                        ui.close_menu();
+                                    }
+                                    if ui.button("Duplicate").clicked() {
+                                        if *id == self.project.active_scene_id { self.duplicate_active_scene(); }
+                                        else {
+                                            self.store_active_scene();
+                                            if self.project.duplicate_scene(id).is_some() {
+                                                self.project_dirty = true;
+                                                self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
+                                                self.log("Duplicated scene.");
+                                            }
+                                        }
+                                        ui.close_menu();
+                                    }
+                                    if ui.button("Delete").clicked() {
+                                        self.scene_delete_confirmation = Some(id.clone());
+                                        ui.close_menu();
+                                    }
+                                });
+                            });
                         }
                         ui.separator();
-                        if ui.button("＋ Add Scene").clicked() { self.add_scene(); }
+                        if ui.button("＋ Default Scene").clicked() { self.add_scene_from_template(SceneTemplate::Default); }
+                        if ui.button("＋ Empty Scene").clicked() { self.add_scene_from_template(SceneTemplate::Empty); }
                     });
                 if self.is_project_dirty() { ui.label("●"); }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
