@@ -175,6 +175,7 @@ struct AstraEditor {
     state: EditorState,
     gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
     project: &'a mut ProjectDocument,
+    project_dirty: &'a mut bool,
     texture_root: Option<PathBuf>,
     camera_yaw: f32,
     camera_pitch: f32,
@@ -838,6 +839,7 @@ impl eframe::App for AstraEditor {
                 state: &mut self.state,
                 gpu_viewport: self.gpu_viewport.clone(),
                 project: &mut self.project,
+                project_dirty: &mut self.project_dirty,
                 texture_root: self.project_path.as_ref().and_then(|p| p.parent()).map(Path::to_path_buf),
                 camera_yaw: &mut self.camera_yaw,
                 camera_pitch: &mut self.camera_pitch,
@@ -1302,6 +1304,17 @@ impl EditorTabViewer<'_> {
                     }
                     ui.add(egui::Slider::new(&mut material.metallic, 0.0..=1.0).text("Metallic"));
                     ui.add(egui::Slider::new(&mut material.roughness, 0.0..=1.0).text("Roughness"));
+                    let selected_material = entity.material_asset_id.clone().unwrap_or_default();
+                    egui::ComboBox::from_id_salt("material_asset_assignment")
+                        .selected_text(if selected_material.is_empty() { "Material Asset: Inline".to_owned() } else { self.project.materials.iter().find(|a| a.id == selected_material).map(|a| a.name.clone()).unwrap_or_else(|| "Missing Material Asset".to_owned()) })
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(selected_material.is_empty(), "Inline Material").clicked() { entity.material_asset_id = None; }
+                            for asset in &self.project.materials {
+                                if ui.selectable_label(selected_material == asset.id, &asset.name).clicked() {
+                                    entity.material = Some(asset.material.clone()); entity.material_asset_id = Some(asset.id.clone());
+                                }
+                            }
+                        });
                     let selected_texture = material.base_color_texture.clone().unwrap_or_default();
                     egui::ComboBox::from_id_salt("material_base_color_texture")
                         .selected_text(if selected_texture.is_empty() { "Base Color Texture: None".to_owned() } else { format!("Base Color: {}", selected_texture) })
@@ -1354,9 +1367,17 @@ impl EditorTabViewer<'_> {
                 });
             }
             ui.separator();
-            ui.strong("Materials");
-            for material in &self.project.materials { ui.label(format!("◉ {}", material.name)); }
-            if self.project.materials.is_empty() { ui.weak("Materials currently live on scene entities; reusable material assets are next."); }
+            ui.horizontal(|ui| {
+                ui.strong("Materials");
+                if ui.button("＋ Create Material Asset").clicked() {
+                    let material = self.state.selected_entity.and_then(|id| self.state.scene.get(id)).and_then(|e| e.material.clone()).unwrap_or_default();
+                    let id = format!("material-{:x}-{}", std::process::id(), self.project.materials.len() + 1);
+                    self.project.materials.push(project::MaterialAsset { id, name: format!("Material {}", self.project.materials.len() + 1), material });
+                    *self.project_dirty = true;
+                }
+            });
+            for material in &self.project.materials { ui.label(format!("◉ {}  ·  metallic {:.2}  ·  roughness {:.2}", material.name, material.material.metallic, material.material.roughness)); }
+            if self.project.materials.is_empty() { ui.weak("Create a reusable material asset here, then assign it in Inspector."); }
         });
     }
 
