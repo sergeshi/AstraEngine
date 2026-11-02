@@ -1209,6 +1209,27 @@ impl EditorTabViewer<'_> {
                 }
             });
 
+        egui::CollapsingHeader::new("Material")
+            .default_open(true)
+            .show(ui, |ui| {
+                if entity.material.is_none() && ui.button("＋ Create Material").clicked() {
+                    entity.material = Some(astra_scene::Material::default());
+                }
+                if let Some(material) = entity.material.as_mut() {
+                    ui.label("Base Color");
+                    for (index, channel) in ["R", "G", "B", "A"].into_iter().enumerate() {
+                        ui.add(egui::Slider::new(&mut material.base_color[index], 0.0..=1.0).text(channel));
+                    }
+                    ui.add(egui::Slider::new(&mut material.metallic, 0.0..=1.0).text("Metallic"));
+                    ui.add(egui::Slider::new(&mut material.roughness, 0.0..=1.0).text("Roughness"));
+                    if ui.button("Remove Material").clicked() {
+                        entity.material = None;
+                    }
+                } else {
+                    ui.weak("No material assigned.");
+                }
+            });
+
         egui::CollapsingHeader::new("Components")
             .default_open(false)
             .show(ui, |ui| {
