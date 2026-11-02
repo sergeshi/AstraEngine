@@ -93,7 +93,10 @@ fn load_obj(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
     if !has_all_uvs { uvs.clear(); }
     if !has_all_normals { normals.clear(); }
     let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
-    geometry.imported_material = imported_material;
+    if let Some(library) = material_library {
+        let mtl_path = path.parent().unwrap_or(Path::new(".")).join(library);
+        if let Ok(material) = load_mtl_material(&mtl_path, asset_root) { geometry.imported_material = Some(material); }
+    }
     Ok(geometry)
 }
 
@@ -134,7 +137,7 @@ fn load_gltf(path: &Path, source: String, asset_root: Option<&Path>) -> Result<M
         }
     } else {
         for mesh in document.meshes() {
-            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material)?;
+            append_gltf_mesh(mesh, glam::Mat4::IDENTITY, &buffers, &mut positions, &mut indices, &mut normals, &mut uvs, &mut imported_material, &images, asset_root)?;
         }
     }
     let mut geometry = MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)?;
@@ -186,7 +189,7 @@ fn append_gltf_mesh(
                 let image_index = info.texture().source().index();
                 if let Some(data) = images.get(image_index) {
                     let color_type = match data.format { gltf::image::Format::R8 => image::ColorType::L8, gltf::image::Format::R8G8 => image::ColorType::La8, gltf::image::Format::R8G8B8 => image::ColorType::Rgb8, gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8, _ => image::ColorType::Rgba8 };
-                    if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("{}-base-color-{image_index}", source)) { material.base_color_texture = Some(relative); }
+                    if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("gltf-base-color-{image_index}")) { material.base_color_texture = Some(relative); }
                 }
             }
             *imported_material = Some(material);
