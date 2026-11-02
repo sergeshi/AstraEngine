@@ -345,9 +345,9 @@ fn validate_scene(scene: &Scene, location: &str, issues: &mut Vec<ValidationIssu
             if mesh.positions.is_empty() || mesh.indices.is_empty() || mesh.indices.len() % 3 != 0
                 || mesh.positions.iter().flatten().any(|value| !value.is_finite())
                 || mesh.indices.iter().any(|index| *index as usize >= mesh.positions.len())
-                || mesh.normals.len() != mesh.positions.len()
+                || (!mesh.normals.is_empty() && mesh.normals.len() != mesh.positions.len())
                 || mesh.normals.iter().flatten().any(|value| !value.is_finite())
-                || mesh.uvs.len() != mesh.positions.len()
+                || (!mesh.uvs.is_empty() && mesh.uvs.len() != mesh.positions.len())
                 || mesh.uvs.iter().flatten().any(|value| !value.is_finite())
                 || mesh.bounds_min.iter().chain(mesh.bounds_max.iter()).any(|value| !value.is_finite())
             {
