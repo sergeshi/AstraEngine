@@ -120,6 +120,9 @@ impl ProjectDocument {
         if self.format_version == 0 || self.format_version > CURRENT_FORMAT_VERSION {
             issues.push(issue("format_version", "Unsupported project format version"));
         }
+        if self.project_id.trim().is_empty() {
+            issues.push(issue("project_id", "Project ID cannot be empty"));
+        }
         if self.project_name.trim().is_empty() {
             issues.push(issue("project_name", "Project name cannot be empty"));
         }
@@ -151,8 +154,17 @@ impl ProjectDocument {
     }
 
     pub fn load(path: &Path) -> Result<Self, ProjectError> {
-        let bytes = fs::read(path).map_err(|e| ProjectError::Io(e.to_string()))?;
+        let backup = path.parent().unwrap_or(Path::new(".")).join(format!(".{}.bak", path.file_name().and_then(|s| s.to_str()).unwrap_or("project.astra")));
+        let bytes = match fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(primary) if backup.exists() => fs::read(&backup).map_err(|backup_error| ProjectError::Io(format!("{primary}; backup recovery failed: {backup_error}")))?,
+            Err(error) => return Err(ProjectError::Io(error.to_string())),
+        };
         let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|e| ProjectError::Parse(e.to_string()))?;
+        let file_version = value.get("format_version").and_then(serde_json::Value::as_u64).unwrap_or(1) as u32;
+        if file_version > CURRENT_FORMAT_VERSION {
+            return Err(ProjectError::UnsupportedVersion(file_version));
+        }
 
         // Compatibility migration: early editor builds saved a bare Scene JSON.
         if value.get("scenes").is_none() && value.get("entities").is_some() {
