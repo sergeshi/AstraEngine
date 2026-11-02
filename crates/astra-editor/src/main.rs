@@ -290,7 +290,7 @@ impl AstraEditor {
     }
 
     fn create_new_project(&mut self) {
-        let mut state = EditorState::default();
+        let state = EditorState::default();
         let mut project = ProjectDocument::new("Untitled");
         if let Some(scene) = project.active_scene_mut() { *scene = state.scene.clone(); }
         self.state = state;
@@ -723,6 +723,7 @@ impl eframe::App for AstraEditor {
         self.menu_bar(ctx);
         self.toolbar(ctx);
         self.unsaved_changes_dialog(ctx);
+        self.scene_management_dialogs(ctx);
 
         egui::TopBottomPanel::bottom("status_bar")
             .exact_height(22.0)
