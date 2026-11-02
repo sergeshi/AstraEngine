@@ -62,24 +62,46 @@ impl PrimitiveMesh {
                 tri([-1.,0.,-1.],[1.,0.,-1.],[1.,0.,1.]);
                 tri([-1.,0.,-1.],[1.,0.,1.],[-1.,0.,1.]);
             }
-            Self::Sphere | Self::Capsule => {
+            Self::Sphere => {
                 let rings = 16usize; let segments = 24usize;
                 for y in 0..rings {
-                    let v0 = y as f32 / rings as f32;
-                    let v1 = (y+1) as f32 / rings as f32;
-                    let lat0 = -std::f32::consts::FRAC_PI_2 + v0*std::f32::consts::PI;
-                    let lat1 = -std::f32::consts::FRAC_PI_2 + v1*std::f32::consts::PI;
+                    let lat0 = -std::f32::consts::FRAC_PI_2 + y as f32 / rings as f32 * std::f32::consts::PI;
+                    let lat1 = -std::f32::consts::FRAC_PI_2 + (y+1) as f32 / rings as f32 * std::f32::consts::PI;
                     for x in 0..segments {
-                        let u0 = x as f32 / segments as f32 * std::f32::consts::TAU;
-                        let u1 = (x+1) as f32 / segments as f32 * std::f32::consts::TAU;
-                        let point = |lat:f32, lon:f32| {
-                            let r=lat.cos(); [r*lon.cos(),lat.sin(),r*lon.sin()]
-                        };
-                        let a=point(lat0,u0); let b=point(lat0,u1);
-                        let c=point(lat1,u1); let d=point(lat1,u0);
-                        let adjust = |mut p:[f32;3]| { if self==Self::Capsule { p[1]=p[1]*0.5+p[1].signum()*0.5; } p };
-                        tri(adjust(a),adjust(b),adjust(c)); tri(adjust(a),adjust(c),adjust(d));
+                        let u0=x as f32/segments as f32*std::f32::consts::TAU;
+                        let u1=(x+1) as f32/segments as f32*std::f32::consts::TAU;
+                        let p=|lat:f32,lon:f32| { let r=lat.cos(); [r*lon.cos(),lat.sin(),r*lon.sin()] };
+                        let (a,b,c,d)=(p(lat0,u0),p(lat0,u1),p(lat1,u1),p(lat1,u0));
+                        tri(a,b,c); tri(a,c,d);
                     }
+                }
+            }
+            Self::Capsule => {
+                let segments=24usize;
+                for upper in [false,true] {
+                    for y in 0..8 {
+                        let start=if upper {0.0} else {-std::f32::consts::FRAC_PI_2};
+                        let lat0=start+y as f32/8.0*std::f32::consts::FRAC_PI_2;
+                        let lat1=start+(y+1) as f32/8.0*std::f32::consts::FRAC_PI_2;
+                        for x in 0..segments {
+                            let u0=x as f32/segments as f32*std::f32::consts::TAU;
+                            let u1=(x+1) as f32/segments as f32*std::f32::consts::TAU;
+                            let p=|lat:f32,lon:f32| {
+                                let r=lat.cos();
+                                let center=if upper {0.5} else {-0.5};
+                                [r*lon.cos(),center+lat.sin()*0.5,r*lon.sin()]
+                            };
+                            let (a,b,c,d)=(p(lat0,u0),p(lat0,u1),p(lat1,u1),p(lat1,u0));
+                            tri(a,b,c); tri(a,c,d);
+                        }
+                    }
+                }
+                for x in 0..segments {
+                    let a=x as f32/segments as f32*std::f32::consts::TAU;
+                    let b=(x+1) as f32/segments as f32*std::f32::consts::TAU;
+                    let p=|ang:f32,y:f32| [ang.cos(),y,ang.sin()];
+                    let (a0,a1,b0,b1)=(p(a,-0.5),p(a,0.5),p(b,-0.5),p(b,0.5));
+                    tri(a0,b0,b1); tri(a0,b1,a1);
                 }
             }
             Self::Cylinder => {
