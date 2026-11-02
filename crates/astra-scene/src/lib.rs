@@ -223,15 +223,18 @@ impl MeshComponent {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Material {
     pub base_color: [f32; 4],
     pub metallic: f32,
     pub roughness: f32,
+    /// Project-relative path to the base-color image, if assigned.
+    #[serde(default)]
+    pub base_color_texture: Option<String>,
 }
 impl Default for Material {
     fn default() -> Self {
-        Self { base_color: [0.72, 0.74, 0.78, 1.0], metallic: 0.0, roughness: 0.65 }
+        Self { base_color: [0.72, 0.74, 0.78, 1.0], metallic: 0.0, roughness: 0.65, base_color_texture: None }
     }
 }
 
@@ -385,7 +388,7 @@ impl Scene {
             new.pivot = original.pivot;
             new.mesh = original.mesh;
             new.mesh_component = original.mesh_component;
-            new.material = original.material;
+            new.material = original.material.clone();
         }
         for old in &ids {
             let old_entity = self.get(*old).ok_or("invalid subtree")?;
