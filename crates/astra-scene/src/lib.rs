@@ -106,6 +106,18 @@ impl PrimitiveMesh {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Material {
+    pub base_color: [f32; 4],
+    pub metallic: f32,
+    pub roughness: f32,
+}
+impl Default for Material {
+    fn default() -> Self {
+        Self { base_color: [0.72, 0.74, 0.78, 1.0], metallic: 0.0, roughness: 0.65 }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
@@ -117,6 +129,8 @@ pub struct Entity {
     pub pivot: [f32; 3],
     #[serde(default)]
     pub mesh: Option<PrimitiveMesh>,
+    #[serde(default)]
+    pub material: Option<Material>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -129,7 +143,7 @@ impl Scene {
     pub fn spawn(&mut self, name: impl Into<String>) -> EntityId {
         self.next_id = self.next_id.max(self.entities.keys().map(|id| id.0).max().unwrap_or(0)) + 1;
         let id = EntityId(self.next_id);
-        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None });
+        self.entities.insert(id, Entity { id, name: name.into(), parent: None, transform: Transform::default(), pivot: [0.0; 3], mesh: None, material: None });
         id
     }
     pub fn spawn_primitive(&mut self, name: impl Into<String>, mesh: PrimitiveMesh) -> EntityId {
@@ -248,6 +262,7 @@ impl Scene {
             new.transform = original.transform;
             new.pivot = original.pivot;
             new.mesh = original.mesh;
+            new.material = original.material;
         }
         for old in &ids {
             let old_entity = self.get(*old).ok_or("invalid subtree")?;
