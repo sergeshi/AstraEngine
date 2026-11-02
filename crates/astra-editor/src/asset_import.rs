@@ -126,7 +126,7 @@ fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
         ..Default::default()
     };
     let scene = ufbx::load_file(filename, options)
-        .map_err(|error| format!("FBX import failed: {error}"))?;
+        .map_err(|error| format!("FBX import failed: {error:?}"))?;
 
     let mut positions = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
