@@ -193,12 +193,19 @@ fn append_gltf_mesh(
         if primitive.mode() != gltf::mesh::Mode::Triangles { continue; }
         if imported_material.is_none() {
             let pbr = primitive.material().pbr_metallic_roughness();
-            let mut material = Material { base_color: pbr.base_color_factor(), metallic: pbr.metallic_factor(), roughness: pbr.roughness_factor(), base_color_texture: None };
+            let mut material = Material { base_color: pbr.base_color_factor(), metallic: pbr.metallic_factor(), roughness: pbr.roughness_factor(), base_color_texture: None, metallic_roughness_texture: None };
             if let (Some(root), Some(info)) = (asset_root, pbr.base_color_texture()) {
                 let image_index = info.texture().source().index();
                 if let Some(data) = images.get(image_index) {
                     let color_type = match data.format { gltf::image::Format::R8 => image::ColorType::L8, gltf::image::Format::R8G8 => image::ColorType::La8, gltf::image::Format::R8G8B8 => image::ColorType::Rgb8, gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8, _ => image::ColorType::Rgba8 };
                     if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("gltf-base-color-{image_index}")) { material.base_color_texture = Some(relative); }
+                }
+            }
+            if let (Some(root), Some(info)) = (asset_root, pbr.metallic_roughness_texture()) {
+                let image_index = info.texture().source().index();
+                if let Some(data) = images.get(image_index) {
+                    let color_type = match data.format { gltf::image::Format::R8 => image::ColorType::L8, gltf::image::Format::R8G8 => image::ColorType::La8, gltf::image::Format::R8G8B8 => image::ColorType::Rgb8, gltf::image::Format::R8G8B8A8 => image::ColorType::Rgba8, _ => image::ColorType::Rgba8 };
+                    if let Some(relative) = save_texture_bytes(&data.pixels, data.width, data.height, color_type, root, &format!("gltf-metallic-roughness-{image_index}")) { material.metallic_roughness_texture = Some(relative); }
                 }
             }
             *imported_material = Some(material);
