@@ -249,7 +249,7 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
     let mut imported_material = None;
     for node in &scene.nodes {
         if imported_material.is_none() {
-            if let (Some(root), Some(source_material)) = (asset_root, node.materials.first()) {
+            if let Some(source_material) = node.materials.first() {
                 let pbr = &source_material.pbr;
                 let base = pbr.base_color.value_vec4;
                 let base_color = if pbr.base_color.has_value { [base.x as f32, base.y as f32, base.z as f32, base.w as f32] } else { [0.72, 0.74, 0.78, 1.0] };
