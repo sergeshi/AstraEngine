@@ -11,6 +11,9 @@ struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
     normal: [f32; 3],
+    uv: [f32; 2],
+    metallic: f32,
+    roughness: f32,
 }
 
 pub struct GpuViewport {
@@ -57,6 +60,12 @@ impl GpuViewport {
             gl.vertex_attrib_pointer_f32(1, 3, glow::FLOAT, false, stride, 12);
             gl.enable_vertex_attrib_array(2);
             gl.vertex_attrib_pointer_f32(2, 3, glow::FLOAT, false, stride, 24);
+            gl.enable_vertex_attrib_array(3);
+            gl.vertex_attrib_pointer_f32(3, 2, glow::FLOAT, false, stride, 36);
+            gl.enable_vertex_attrib_array(4);
+            gl.vertex_attrib_pointer_f32(4, 1, glow::FLOAT, false, stride, 44);
+            gl.enable_vertex_attrib_array(5);
+            gl.vertex_attrib_pointer_f32(5, 1, glow::FLOAT, false, stride, 48);
             gl.bind_vertex_array(None);
             gl.bind_buffer(glow::ARRAY_BUFFER, None);
 
@@ -199,7 +208,7 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
         let Some(transform) = scene.world_matrix(entity.id) else { continue; };
         let color = if selected_entity == Some(entity.id) {
             [0.98, 0.78, 0.28]
-        } else if let Some(material) = entity.material {
+        } else if let Some(material) = entity.material.as_ref() {
             [material.base_color[0], material.base_color[1], material.base_color[2]]
         } else if entity.mesh_component.as_ref().is_some_and(|component| matches!(component, MeshComponent::Imported(_))) {
             [0.66, 0.72, 0.82]
@@ -212,23 +221,33 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
                 PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
             }
         };
-        let geometry_normals = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g.normals.as_slice()), _ => None });
-        let geometry_indices = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g.indices.as_slice()), _ => None });
+        let geometry_data = entity.mesh_component.as_ref().and_then(|component| match component { MeshComponent::Imported(g) => Some(g), _ => None });
+        let material = entity.material.as_ref();
         for (corner, point) in points.iter().enumerate() {
             let pivot = Vec3::from_array(entity.pivot);
             let position = transform.transform_point3(Vec3::from_array(*point) - pivot);
-            let normal_index = geometry_indices.and_then(|ids| ids.get(corner)).copied().unwrap_or(corner as u32) as usize;
-            let local_normal = geometry_normals.and_then(|ns| ns.get(normal_index)).copied().unwrap_or([0.0, 1.0, 0.0]);
+            let local_normal = if let Some(g) = geometry_data {
+                let index = g.indices.get(corner).copied().unwrap_or(corner as u32) as usize;
+                g.normals.get(index).copied().unwrap_or([0.0, 1.0, 0.0])
+            } else {
+                let a = Vec3::from_array(points[(corner / 3) * 3]);
+                let b = Vec3::from_array(points[(corner / 3) * 3 + 1]);
+                let c = Vec3::from_array(points[(corner / 3) * 3 + 2]);
+                (b-a).cross(c-a).normalize_or_zero().to_array()
+            };
             let normal = transform.inverse().transpose().transform_vector3(Vec3::from_array(local_normal)).normalize_or_zero();
-            vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array() });
+            let uv = geometry_data.and_then(|g| g.indices.get(corner).and_then(|i| g.uvs.get(*i as usize))).copied().unwrap_or([0.0, 0.0]);
+            vertices.push(Vertex { position: position.to_array(), color, normal: normal.to_array(), uv,
+                metallic: material.map(|m| m.metallic).unwrap_or(0.0),
+                roughness: material.map(|m| m.roughness).unwrap_or(0.65) });
         }
     }
     vertices
 }
 
 fn push_line(vertices: &mut Vec<Vertex>, a: [f32; 3], b: [f32; 3], color: [f32; 3]) {
-    vertices.push(Vertex { position: a, color, normal: [0.0, 1.0, 0.0] });
-    vertices.push(Vertex { position: b, color, normal: [0.0, 1.0, 0.0] });
+    vertices.push(Vertex { position: a, color, normal: [0.0, 1.0, 0.0], uv: [0.0, 0.0], metallic: 0.0, roughness: 1.0 });
+    vertices.push(Vertex { position: b, color, normal: [0.0, 1.0, 0.0], uv: [0.0, 0.0], metallic: 0.0, roughness: 1.0 });
 }
 
 fn build_line_vertex_count() -> i32 {
@@ -240,12 +259,21 @@ const VERTEX_SHADER: &str = r#"#version 330 core
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_color;
 layout (location = 2) in vec3 a_normal;
+layout (location = 3) in vec2 a_uv;
+layout (location = 4) in float a_metallic;
+layout (location = 5) in float a_roughness;
 uniform mat4 u_view_projection;
 out vec3 v_color;
 out vec3 v_normal;
+out vec2 v_uv;
+out float v_metallic;
+out float v_roughness;
 void main() {
     v_color = a_color;
     v_normal = a_normal;
+    v_uv = a_uv;
+    v_metallic = a_metallic;
+    v_roughness = a_roughness;
     gl_Position = u_view_projection * vec4(a_position, 1.0);
 }
 "#;
@@ -253,9 +281,21 @@ void main() {
 const FRAGMENT_SHADER: &str = r#"#version 330 core
 in vec3 v_color;
 in vec3 v_normal;
+in vec2 v_uv;
+in float v_metallic;
+in float v_roughness;
 out vec4 out_color;
 void main() {
-    float diffuse = max(dot(normalize(v_normal), normalize(vec3(0.45, 0.82, 0.36))), 0.0);
-    out_color = vec4(v_color * (0.28 + diffuse * 0.72), 1.0);
+    vec3 n = normalize(v_normal);
+    vec3 l = normalize(vec3(0.45, 0.82, 0.36));
+    vec3 v = normalize(vec3(0.0, 2.0, 5.0));
+    vec3 h = normalize(l + v);
+    float ndotl = max(dot(n, l), 0.0);
+    float exponent = mix(128.0, 3.0, clamp(v_roughness, 0.0, 1.0));
+    float specular = pow(max(dot(n, h), 0.0), exponent);
+    vec3 f0 = mix(vec3(0.04), v_color, clamp(v_metallic, 0.0, 1.0));
+    vec3 diffuse = v_color * (1.0 - clamp(v_metallic, 0.0, 1.0)) * (0.24 + 0.76 * ndotl);
+    vec3 color = diffuse + f0 * specular * (1.0 - 0.65 * v_roughness);
+    out_color = vec4(color, 1.0);
 }
 "#;
