@@ -211,7 +211,8 @@ impl AstraEditor {
             *scene = state.scene.clone();
         }
         let mut project_path: Option<PathBuf> = cc.storage
-            .and_then(|storage| eframe::get_value::<String>(storage, PROJECT_PATH_KEY))
+            .and_then(|storage| eframe::get_value::<Option<String>>(storage, PROJECT_PATH_KEY))
+            .flatten()
             .map(PathBuf::from);
         let recovery_path = ProjectDocument::autosave_path();
         let mut was_recovered = false;
@@ -660,9 +661,8 @@ impl eframe::App for AstraEditor {
         eframe::set_value(storage, DOCK_STATE_KEY, &self.dock_state);
         eframe::set_value(storage, EDITOR_STATE_KEY, &self.state);
         eframe::set_value(storage, PROJECT_STATE_KEY, &self.project_snapshot());
-        if let Some(path) = &self.project_path {
-            eframe::set_value(storage, PROJECT_PATH_KEY, &path.to_string_lossy().to_string());
-        }
+        let stored_path = self.project_path.as_ref().map(|path| path.to_string_lossy().to_string());
+        eframe::set_value(storage, PROJECT_PATH_KEY, &stored_path);
     }
 
     fn persist_egui_memory(&self) -> bool {
