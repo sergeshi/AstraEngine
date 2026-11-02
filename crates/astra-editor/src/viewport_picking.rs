@@ -160,6 +160,17 @@ mod tests {
     }
 
     #[test]
+    fn center_pointer_picks_non_cube_primitives() {
+        for mesh in [PrimitiveMesh::Sphere, PrimitiveMesh::Plane, PrimitiveMesh::Cylinder, PrimitiveMesh::Capsule] {
+            let mut scene = Scene::new();
+            let id = scene.spawn_primitive(format!("{mesh:?}"), mesh);
+            let viewport = Rect::from_min_max(Pos2::ZERO, Pos2::new(100.0, 100.0));
+            let picked = pick_entity(&scene, viewport.center(), viewport, 0.0, 0.0, 9.0, [0.0; 3]);
+            assert_eq!(picked, Some(id), "failed to pick {mesh:?}");
+        }
+    }
+
+    #[test]
     fn picking_works_after_camera_target_moves_away_from_origin() {
         let mut scene = Scene::new();
         let cube = scene.spawn_cube("Offset Cube");
