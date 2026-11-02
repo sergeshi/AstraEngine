@@ -174,8 +174,6 @@ struct AstraEditor {
     dock_state: DockState<EditorTab>,
     state: EditorState,
     gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
-    project: &'a mut ProjectDocument,
-    project_dirty: &'a mut bool,
     texture_root: Option<PathBuf>,
     camera_yaw: f32,
     camera_pitch: f32,
