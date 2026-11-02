@@ -1098,6 +1098,28 @@ impl EditorTabViewer<'_> {
                 .rect_filled(rect, 0.0, egui::Color32::from_rgb(27, 31, 39));
         }
 
+        if let Some(id) = self.state.selected_entity {
+            if let Some(entity) = self.state.scene.get(id) {
+                if let (Some(mesh), Some(matrix)) = (entity.mesh, self.state.scene.world_matrix(id)) {
+                    let (min, max) = mesh.local_bounds();
+                    let pivot = Vec3::from_array(entity.pivot);
+                    let corners = [
+                        Vec3::new(min[0],min[1],min[2]), Vec3::new(max[0],min[1],min[2]),
+                        Vec3::new(max[0],max[1],min[2]), Vec3::new(min[0],max[1],min[2]),
+                        Vec3::new(min[0],min[1],max[2]), Vec3::new(max[0],min[1],max[2]),
+                        Vec3::new(max[0],max[1],max[2]), Vec3::new(min[0],max[1],max[2]),
+                    ];
+                    let edges = [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),(0,4),(1,5),(2,6),(3,7)];
+                    let projected: Vec<_> = corners.iter().map(|p| viewport_gizmo::project(camera_matrix, rect, matrix.transform_point3(*p-pivot))).collect();
+                    for (a,b) in edges {
+                        if let (Some(a),Some(b)) = (projected[a],projected[b]) {
+                            ui.painter().line_segment([a,b], egui::Stroke::new(1.2, egui::Color32::from_rgb(245,190,65)));
+                        }
+                    }
+                }
+            }
+        }
+
         if let Some(position) = selected_position {
             viewport_gizmo::draw(
                 ui.painter(),
