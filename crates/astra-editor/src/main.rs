@@ -1225,7 +1225,7 @@ impl EditorTabViewer<'_> {
                     .or_else(|| entity.mesh.map(PrimitiveMesh::local_bounds));
                 if let Some((min, max)) = mesh_bounds {
                     match entity.mesh_component.as_ref() {
-                        Some(MeshComponent::Primitive(mesh)) => ui.label(format!("Primitive: {mesh:?}")),
+                        Some(MeshComponent::Primitive(mesh)) => { ui.label(format!("Primitive: {mesh:?}")); }
                         Some(MeshComponent::Imported(geometry)) => {
                             ui.label(format!("Imported: {}", geometry.source));
                             ui.label(format!("{} vertices · {} triangles", geometry.positions.len(), geometry.indices.len() / 3));
