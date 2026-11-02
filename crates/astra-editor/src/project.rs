@@ -221,18 +221,22 @@ impl ProjectDocument {
             validate_scene(&entry.scene, &location, &mut issues);
         }
         let mut texture_ids = BTreeSet::new();
+        let mut texture_paths = BTreeSet::new();
         for (index, texture) in self.textures.iter().enumerate() {
             let location = format!("textures[{index}]");
             let path = Path::new(&texture.relative_path);
             if texture.id.trim().is_empty() || !texture_ids.insert(texture.id.as_str()) || texture.name.trim().is_empty()
                 || path.is_absolute() || path.components().any(|component| matches!(component, std::path::Component::ParentDir)) {
                 issues.push(issue(&location, "Texture asset has an invalid ID, name, or project-relative path"));
+            } else {
+                texture_paths.insert(texture.relative_path.as_str());
             }
         }
         let mut material_ids = BTreeSet::new();
         for (index, material) in self.materials.iter().enumerate() {
             if material.id.trim().is_empty() || !material_ids.insert(material.id.as_str()) || material.name.trim().is_empty()
-                || !material_is_valid(&material.material) {
+                || !material_is_valid(&material.material)
+                || !material_textures_registered(&material.material, &texture_paths) {
                 issues.push(issue(&format!("materials[{index}]"), "Material asset has an invalid ID, name, or PBR data"));
             }
         }
@@ -241,7 +245,7 @@ impl ProjectDocument {
                 if entity.material_asset_id.as_ref().is_some_and(|id| !material_ids.contains(id.as_str())) {
                     issues.push(issue(&format!("scenes[{scene_index}]"), &format!("Entity {} references a missing material asset", entity.id.0)));
                 }
-                if entity.material.as_ref().is_some_and(|material| !material_is_valid(material)) {
+                if entity.material.as_ref().is_some_and(|material| !material_is_valid(material) || !material_textures_registered(material, &texture_paths)) {
                     issues.push(issue(&format!("scenes[{scene_index}]"), &format!("Entity {} has invalid PBR material values", entity.id.0)));
                 }
             }
@@ -364,6 +368,11 @@ fn material_is_valid(material: &astra_scene::Material) -> bool {
             let path = Path::new(path);
             !path.is_absolute() && !path.components().any(|part| matches!(part, std::path::Component::ParentDir))
         })
+}
+
+fn material_textures_registered(material: &astra_scene::Material, paths: &BTreeSet<&str>) -> bool {
+    [material.base_color_texture.as_deref(), material.metallic_roughness_texture.as_deref()]
+        .into_iter().flatten().all(|path| paths.contains(path))
 }
 
 fn validate_scene(scene: &Scene, location: &str, issues: &mut Vec<ValidationIssue>) {
