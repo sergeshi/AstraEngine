@@ -133,8 +133,8 @@ impl GpuViewport {
                 let material = entity.material.as_ref();
                 let base_color_path = if selected_entity == Some(entity.id) { None } else { material.and_then(|m| m.base_color_texture.as_deref()) };
                 let metallic_roughness_path = if selected_entity == Some(entity.id) { None } else { material.and_then(|m| m.metallic_roughness_texture.as_deref()) };
-                let base_color = base_color_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
-                let metallic_roughness = metallic_roughness_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative)));
+                let base_color = base_color_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative, true)));
+                let metallic_roughness = metallic_roughness_path.and_then(|relative| texture_root.and_then(|root| self.texture_for_path(gl, root, relative, false)));
                 gl.active_texture(glow::TEXTURE0);
                 gl.bind_texture(glow::TEXTURE_2D, base_color);
                 gl.uniform_1_i32(Some(&self.has_texture), if base_color.is_some() { 1 } else { 0 });
@@ -154,9 +154,9 @@ impl GpuViewport {
         }
     }
 
-    fn texture_for_path(&mut self, gl: &glow::Context, root: &Path, relative: &str) -> Option<glow::Texture> {
+    fn texture_for_path(&mut self, gl: &glow::Context, root: &Path, relative: &str, srgb: bool) -> Option<glow::Texture> {
         let path = root.join(relative);
-        let key = path.to_string_lossy().to_string();
+        let key = format!("{}|srgb={srgb}", path.to_string_lossy());
         if let Some(texture) = self.textures.get(&key) { return Some(*texture); }
         let image = image::open(&path).ok()?.flipv().to_rgba8();
         let (width, height) = image.dimensions();
@@ -169,7 +169,8 @@ impl GpuViewport {
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, glow::REPEAT as i32);
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, glow::REPEAT as i32);
             gl.pixel_store_i32(glow::UNPACK_ALIGNMENT, 1);
-            gl.tex_image_2d(glow::TEXTURE_2D, 0, glow::SRGB8_ALPHA8 as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
+            let internal_format = if srgb { glow::SRGB8_ALPHA8 } else { glow::RGBA8 };
+            gl.tex_image_2d(glow::TEXTURE_2D, 0, internal_format as i32, width as i32, height as i32, 0, glow::RGBA, glow::UNSIGNED_BYTE, Some(&pixels));
             gl.generate_mipmap(glow::TEXTURE_2D);
             gl.bind_texture(glow::TEXTURE_2D, None);
             self.textures.insert(key, texture);
