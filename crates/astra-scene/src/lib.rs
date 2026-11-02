@@ -162,7 +162,7 @@ impl MeshGeometry {
             return Err("mesh index is outside the vertex array");
         }
         let normals = generate_vertex_normals(&positions, &indices);
-        let uvs = vec![[0.0, 0.0]; positions.len()];
+        let uvs = generate_vertex_uvs(&positions);
         Self::new_with_attributes(positions, indices, normals, uvs, source)
     }
 
@@ -172,7 +172,7 @@ impl MeshGeometry {
         if indices.iter().any(|i| *i as usize >= positions.len()) { return Err("mesh index is outside the vertex array"); }
         let normals = if normals.len() == positions.len() { normals } else { generate_vertex_normals(&positions, &indices) };
         if normals.iter().flatten().any(|v| !v.is_finite()) { return Err("mesh contains non-finite normals"); }
-        let uvs = if uvs.len() == positions.len() { uvs } else { vec![[0.0, 0.0]; positions.len()] };
+        let uvs = if uvs.len() == positions.len() { uvs } else { generate_vertex_uvs(&positions) };
         if uvs.iter().flatten().any(|v| !v.is_finite()) { return Err("mesh contains non-finite UV coordinates"); }
         let mut min = Vec3::splat(f32::INFINITY);
         let mut max = Vec3::splat(f32::NEG_INFINITY);
@@ -183,6 +183,20 @@ impl MeshGeometry {
     pub fn triangle_vertices(&self) -> Vec<[f32; 3]> {
         self.indices.iter().map(|index| self.positions[*index as usize]).collect()
     }
+}
+
+fn generate_vertex_uvs(positions: &[[f32; 3]]) -> Vec<[f32; 2]> {
+    let mut min_x = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut min_z = f32::INFINITY;
+    let mut max_z = f32::NEG_INFINITY;
+    for position in positions {
+        min_x = min_x.min(position[0]); max_x = max_x.max(position[0]);
+        min_z = min_z.min(position[2]); max_z = max_z.max(position[2]);
+    }
+    let width = (max_x - min_x).max(1.0e-6);
+    let depth = (max_z - min_z).max(1.0e-6);
+    positions.iter().map(|p| [(p[0] - min_x) / width, (p[2] - min_z) / depth]).collect()
 }
 
 fn generate_vertex_normals(positions: &[[f32; 3]], indices: &[u32]) -> Vec<[f32; 3]> {
