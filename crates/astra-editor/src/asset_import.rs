@@ -1,5 +1,6 @@
 //! OBJ, glTF, GLB and FBX mesh import. Imported geometry is embedded in the .astra scene.
 use astra_scene::{Material, MeshGeometry};
+use image::GenericImageView;
 use std::{fs, path::Path, sync::atomic::{AtomicU64, Ordering}};
 
 static NEXT_IMPORTED_TEXTURE_ID: AtomicU64 = AtomicU64::new(1);
@@ -293,8 +294,8 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
                     }
                 }
                 if let Some(root) = asset_root {
-                    let roughness = pbr.roughness.texture.as_ref().and_then(load_ufbx_texture_image);
-                    let metalness = pbr.metalness.texture.as_ref().and_then(load_ufbx_texture_image);
+                    let roughness = pbr.roughness.texture.as_ref().and_then(|texture| load_ufbx_texture_image(texture));
+                    let metalness = pbr.metalness.texture.as_ref().and_then(|texture| load_ufbx_texture_image(texture));
                     if roughness.is_some() || metalness.is_some() {
                         if let Some(relative) = save_packed_mr_texture(roughness, metalness, root, "fbx-metallic-roughness") {
                             material.metallic_roughness_texture = Some(relative);
