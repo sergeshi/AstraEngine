@@ -26,6 +26,7 @@ fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let mut vertex_map = HashMap::<(usize, Option<usize>, Option<usize>), u32>::new();
     let mut has_all_uvs = true;
     let mut has_all_normals = true;
+    let mut material_library: Option<String> = None;
 
     let resolve = |raw: &str, count: usize, line: usize, kind: &str| -> Result<usize, String> {
         let index: i64 = raw.parse().map_err(|_| format!("Invalid OBJ {kind} index at line {line}"))?;
@@ -59,6 +60,7 @@ fn load_obj(path: &Path, source: String) -> Result<MeshGeometry, String> {
                 if v.len() != 3 || v.iter().any(|n| !n.is_finite()) { return Err(format!("Invalid normal at OBJ line {line_number}")); }
                 source_normals.push([v[0], v[1], v[2]]);
             }
+            "mtllib" => { material_library = parts.next().map(str::to_owned); }
             "f" => {
                 let mut face = Vec::<u32>::new();
                 for token in parts {
@@ -184,18 +186,12 @@ fn append_gltf_mesh(
 
 fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
     let filename = path.to_str().ok_or_else(|| "FBX path is not valid UTF-8".to_owned())?;
-    let options = ufbx::LoadOpts {
-        target_axes: ufbx::CoordinateAxes::right_handed_y_up(),
-        target_unit_meters: 1.0,
-        generate_missing_normals: true,
-        ..Default::default()
-    };
-    let scene = ufbx::load_file(filename, options)
-        .map_err(|error| format!("FBX import failed: {error:?}"))?;
-
+    let options = ufbx::LoadOpts { target_axes: ufbx::CoordinateAxes::right_handed_y_up(), target_unit_meters: 1.0, generate_missing_normals: true, normalize_normals: true, ..Default::default() };
+    let scene = ufbx::load_file(filename, options).map_err(|error| format!("FBX import failed: {error:?}"))?;
     let mut positions = Vec::<[f32; 3]>::new();
     let mut indices = Vec::<u32>::new();
-
+    let mut normals = Vec::<[f32; 3]>::new();
+    let mut uvs = Vec::<[f32; 2]>::new();
     for node in &scene.nodes {
         let Some(mesh) = node.mesh.as_ref() else { continue };
         let matrix = node.geometry_to_world;
@@ -205,32 +201,27 @@ fn load_fbx(path: &Path, source: String) -> Result<MeshGeometry, String> {
             matrix.m02 as f32, matrix.m12 as f32, matrix.m22 as f32, 0.0,
             matrix.m03 as f32, matrix.m13 as f32, matrix.m23 as f32, 1.0,
         ]);
-
+        let normal_transform = transform.inverse().transpose();
         let mut triangulated = vec![0u32; mesh.max_face_triangles.saturating_mul(3)];
         for face in &mesh.faces {
             if face.num_indices < 3 { continue; }
             let triangle_count = mesh.triangulate_face(&mut triangulated, *face) as usize;
             let corner_count = triangle_count.saturating_mul(3);
-            if corner_count > triangulated.len() {
-                return Err("FBX triangulation returned an invalid index count".to_owned());
-            }
+            if corner_count > triangulated.len() { return Err("FBX triangulation returned an invalid index count".to_owned()); }
             for &vertex_index in &triangulated[..corner_count] {
                 let vertex = mesh.vertex_position[vertex_index as usize];
-                let point = transform.transform_point3(glam::Vec3::new(
-                    vertex.x as f32, vertex.y as f32, vertex.z as f32,
-                ));
-                let next_index = u32::try_from(positions.len())
-                    .map_err(|_| "FBX mesh exceeds the supported vertex count".to_owned())?;
-                positions.push(point.to_array());
-                indices.push(next_index);
+                let point = transform.transform_point3(glam::Vec3::new(vertex.x as f32, vertex.y as f32, vertex.z as f32));
+                let next_index = u32::try_from(positions.len()).map_err(|_| "FBX mesh exceeds the supported vertex count".to_owned())?;
+                positions.push(point.to_array()); indices.push(next_index);
+                let n = ufbx::get_vertex_vec3(&mesh.vertex_normal, vertex_index as usize);
+                normals.push(normal_transform.transform_vector3(glam::Vec3::new(n.x as f32, n.y as f32, n.z as f32)).normalize_or_zero().to_array());
+                let uv = ufbx::get_vertex_vec2(&mesh.vertex_uv, vertex_index as usize);
+                uvs.push([uv.x as f32, uv.y as f32]);
             }
         }
     }
-
-    if indices.is_empty() {
-        return Err("FBX file contains no triangle mesh geometry".to_owned());
-    }
-    MeshGeometry::new(positions, indices, source).map_err(str::to_owned)
+    if indices.is_empty() { return Err("FBX file contains no triangle mesh geometry".to_owned()); }
+    MeshGeometry::new_with_attributes(positions, indices, normals, uvs, source).map_err(str::to_owned)
 }
 
 #[cfg(test)]
