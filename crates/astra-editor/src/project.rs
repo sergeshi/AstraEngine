@@ -227,8 +227,19 @@ impl ProjectDocument {
         }
         let mut material_ids = BTreeSet::new();
         for (index, material) in self.materials.iter().enumerate() {
-            if material.id.trim().is_empty() || !material_ids.insert(material.id.as_str()) || material.name.trim().is_empty() {
-                issues.push(issue(&format!("materials[{index}]"), "Material asset has an invalid ID or name"));
+            if material.id.trim().is_empty() || !material_ids.insert(material.id.as_str()) || material.name.trim().is_empty()
+                || !material_is_valid(&material.material) {
+                issues.push(issue(&format!("materials[{index}]"), "Material asset has an invalid ID, name, or PBR data"));
+            }
+        }
+        for (scene_index, entry) in self.scenes.iter().enumerate() {
+            for entity in entry.scene.iter() {
+                if entity.material_asset_id.as_ref().is_some_and(|id| !material_ids.contains(id.as_str())) {
+                    issues.push(issue(&format!("scenes[{scene_index}]"), &format!("Entity {} references a missing material asset", entity.id.0)));
+                }
+                if entity.material.as_ref().is_some_and(|material| !material_is_valid(material)) {
+                    issues.push(issue(&format!("scenes[{scene_index}]"), &format!("Entity {} has invalid PBR material values", entity.id.0)));
+                }
             }
         }
         if !scene_ids.contains(self.active_scene_id.as_str()) {
@@ -323,6 +334,15 @@ fn default_scene() -> Scene {
 
 fn issue(location: &str, message: &str) -> ValidationIssue {
     ValidationIssue { location: location.to_owned(), message: message.to_owned() }
+}
+
+fn material_is_valid(material: &astra_scene::Material) -> bool {
+    material.base_color.iter().all(|value| value.is_finite())
+        && material.metallic.is_finite() && material.roughness.is_finite()
+        && material.base_color_texture.as_ref().is_none_or(|path| {
+            let path = Path::new(path);
+            !path.is_absolute() && !path.components().any(|part| matches!(part, std::path::Component::ParentDir))
+        })
 }
 
 fn validate_scene(scene: &Scene, location: &str, issues: &mut Vec<ValidationIssue>) {
