@@ -135,6 +135,12 @@ pub struct MeshGeometry {
     pub positions: Vec<[f32; 3]>,
     /// Triangle indices into positions.
     pub indices: Vec<u32>,
+    /// Per-vertex normals; absent in older project files.
+    #[serde(default)]
+    pub normals: Vec<[f32; 3]>,
+    /// Per-vertex UV0 coordinates; absent when the source has no UVs.
+    #[serde(default)]
+    pub uvs: Vec<[f32; 2]>,
     pub bounds_min: [f32; 3],
     pub bounds_max: [f32; 3],
     /// Original asset filename for provenance; geometry is embedded in the project.
@@ -159,18 +165,37 @@ impl MeshGeometry {
             min = min.min(point);
             max = max.max(point);
         }
-        Ok(Self {
-            positions,
-            indices,
-            bounds_min: min.to_array(),
-            bounds_max: max.to_array(),
-            source: source.into(),
-        })
+        let normals = generate_vertex_normals(&positions, &indices);
+        let uvs = vec![[0.0, 0.0]; positions.len()];
+        Self::new_with_attributes(positions, indices, normals, uvs, source)
+    }
+
+    pub fn new_with_attributes(positions: Vec<[f32; 3]>, indices: Vec<u32>, normals: Vec<[f32; 3]>, uvs: Vec<[f32; 2]>, source: impl Into<String>) -> Result<Self, &'static str> {
+        if positions.is_empty() || indices.is_empty() || indices.len() % 3 != 0 { return Err("mesh must contain positions and triangle indices"); }
+        if positions.iter().flatten().any(|v| !v.is_finite()) { return Err("mesh contains non-finite vertex positions"); }
+        if indices.iter().any(|i| *i as usize >= positions.len()) { return Err("mesh index is outside the vertex array"); }
+        let normals = if normals.len() == positions.len() { normals } else { generate_vertex_normals(&positions, &indices) };
+        if normals.iter().flatten().any(|v| !v.is_finite()) { return Err("mesh contains non-finite normals"); }
+        let uvs = if uvs.len() == positions.len() { uvs } else { vec![[0.0, 0.0]; positions.len()] };
+        if uvs.iter().flatten().any(|v| !v.is_finite()) { return Err("mesh contains non-finite UV coordinates"); }
+        let mut min = Vec3::splat(f32::INFINITY);
+        let mut max = Vec3::splat(f32::NEG_INFINITY);
+        for position in &positions { let point = Vec3::from_array(*position); min = min.min(point); max = max.max(point); }
+        Ok(Self { positions, indices, normals, uvs, bounds_min: min.to_array(), bounds_max: max.to_array(), source: source.into() })
     }
 
     pub fn triangle_vertices(&self) -> Vec<[f32; 3]> {
         self.indices.iter().map(|index| self.positions[*index as usize]).collect()
     }
+}
+
+fn generate_vertex_normals(positions: &[[f32; 3]], indices: &[u32]) -> Vec<[f32; 3]> {
+    let mut normals = vec![Vec3::ZERO; positions.len()];
+    for tri in indices.chunks_exact(3) {
+        let a=Vec3::from_array(positions[tri[0] as usize]); let b=Vec3::from_array(positions[tri[1] as usize]); let c=Vec3::from_array(positions[tri[2] as usize]);
+        let n=(b-a).cross(c-a); for i in tri { normals[*i as usize]+=n; }
+    }
+    normals.into_iter().map(|n| n.normalize_or_zero().to_array()).collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
