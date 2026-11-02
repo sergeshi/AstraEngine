@@ -1,5 +1,5 @@
 use crate::viewport_camera;
-use astra_scene::{EntityId, MeshComponent, PrimitiveMesh, Scene};
+use astra_scene::{EntityId, MeshComponent, Scene};
 use egui::{Pos2, Rect};
 use glam::{Mat4, Vec3, Vec4};
 
@@ -41,7 +41,7 @@ pub fn pick_entity(
 
     for entity in scene.iter() {
         let Some(bounds) = entity.mesh_component.as_ref().map(MeshComponent::local_bounds)
-            .or_else(|| entity.mesh.map(PrimitiveMesh::local_bounds)) else { continue; };
+            .or_else(|| entity.mesh.map(astra_scene::PrimitiveMesh::local_bounds)) else { continue; };
 
         let Some(transform) = scene.world_matrix(entity.id) else {
             continue;
