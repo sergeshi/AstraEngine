@@ -190,84 +190,23 @@ fn build_grid_vertices() -> Vec<Vertex> {
 
 fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec<Vertex> {
     let mut vertices = build_grid_vertices();
-    let cube_faces: [([f32; 3], [[f32; 3]; 4]); 6] = [
-        (
-            [0.78, 0.31, 0.27],
-            [
-                [-1.0, -1.0, 1.0],
-                [1.0, -1.0, 1.0],
-                [1.0, 1.0, 1.0],
-                [-1.0, 1.0, 1.0],
-            ],
-        ),
-        (
-            [0.30, 0.66, 0.39],
-            [
-                [1.0, -1.0, -1.0],
-                [-1.0, -1.0, -1.0],
-                [-1.0, 1.0, -1.0],
-                [1.0, 1.0, -1.0],
-            ],
-        ),
-        (
-            [0.28, 0.48, 0.82],
-            [
-                [-1.0, -1.0, -1.0],
-                [-1.0, -1.0, 1.0],
-                [-1.0, 1.0, 1.0],
-                [-1.0, 1.0, -1.0],
-            ],
-        ),
-        (
-            [0.83, 0.68, 0.28],
-            [
-                [1.0, -1.0, 1.0],
-                [1.0, -1.0, -1.0],
-                [1.0, 1.0, -1.0],
-                [1.0, 1.0, 1.0],
-            ],
-        ),
-        (
-            [0.65, 0.40, 0.78],
-            [
-                [-1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0],
-                [1.0, 1.0, -1.0],
-                [-1.0, 1.0, -1.0],
-            ],
-        ),
-        (
-            [0.30, 0.68, 0.73],
-            [
-                [-1.0, -1.0, -1.0],
-                [1.0, -1.0, -1.0],
-                [1.0, -1.0, 1.0],
-                [-1.0, -1.0, 1.0],
-            ],
-        ),
-    ];
-
     for entity in scene.iter() {
-        if entity.mesh != Some(PrimitiveMesh::Cube) {
-            continue;
-        }
-        let Some(transform) = scene.world_matrix(entity.id) else {
-            continue;
-        };
-        let selected = selected_entity == Some(entity.id);
-        for (face_color, corners) in cube_faces {
-            let color = if selected {
-                [0.98, 0.78, 0.28]
-            } else {
-                face_color
-            };
-            for index in [0, 1, 2, 0, 2, 3] {
-                let position = transform.transform_point3(Vec3::from_array(corners[index]));
-                vertices.push(Vertex {
-                    position: position.to_array(),
-                    color,
-                });
+        let Some(mesh) = entity.mesh else { continue; };
+        let Some(transform) = scene.world_matrix(entity.id) else { continue; };
+        let color = if selected_entity == Some(entity.id) {
+            [0.98, 0.78, 0.28]
+        } else {
+            match mesh {
+                PrimitiveMesh::Cube => [0.55, 0.63, 0.78],
+                PrimitiveMesh::Sphere => [0.30, 0.72, 0.68],
+                PrimitiveMesh::Plane => [0.72, 0.62, 0.36],
+                PrimitiveMesh::Cylinder => [0.62, 0.48, 0.78],
+                PrimitiveMesh::Capsule => [0.78, 0.48, 0.42],
             }
+        };
+        for point in mesh.triangle_vertices() {
+            let position = transform.transform_point3(Vec3::from_array(point));
+            vertices.push(Vertex { position: position.to_array(), color });
         }
     }
     vertices
