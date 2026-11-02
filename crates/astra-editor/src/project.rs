@@ -165,13 +165,30 @@ impl ProjectDocument {
     }
 
     pub fn load(path: &Path) -> Result<Self, ProjectError> {
-        let backup = path.parent().unwrap_or(Path::new(".")).join(format!(".{}.bak", path.file_name().and_then(|s| s.to_str()).unwrap_or("project.astra")));
-        let bytes = match fs::read(path) {
-            Ok(bytes) => bytes,
-            Err(primary) if backup.exists() => fs::read(&backup).map_err(|backup_error| ProjectError::Io(format!("{primary}; backup recovery failed: {backup_error}")))?,
-            Err(error) => return Err(ProjectError::Io(error.to_string())),
-        };
-        let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|e| ProjectError::Parse(e.to_string()))?;
+        let backup = path.parent().unwrap_or(Path::new("."))
+            .join(format!(".{}.bak", path.file_name().and_then(|s| s.to_str()).unwrap_or("project.astra")));
+
+        let primary_result = fs::read(path)
+            .map_err(|error| ProjectError::Io(error.to_string()))
+            .and_then(|bytes| Self::decode_project(&bytes, path));
+
+        match primary_result {
+            Ok(project) => Ok(project),
+            Err(primary_error) if backup.exists() => {
+                let backup_result = fs::read(&backup)
+                    .map_err(|error| ProjectError::Io(error.to_string()))
+                    .and_then(|bytes| Self::decode_project(&bytes, path));
+                backup_result.map_err(|backup_error| ProjectError::Parse(format!(
+                    "Primary project failed ({primary_error}); backup recovery failed ({backup_error})"
+                )))
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn decode_project(bytes: &[u8], path: &Path) -> Result<Self, ProjectError> {
+        let value: serde_json::Value = serde_json::from_slice(bytes)
+            .map_err(|error| ProjectError::Parse(error.to_string()))?;
         let file_version = value.get("format_version").and_then(serde_json::Value::as_u64).unwrap_or(1) as u32;
         if file_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(file_version));
@@ -182,23 +199,25 @@ impl ProjectDocument {
 
         // Compatibility migration: early editor builds saved a bare Scene JSON.
         if value.get("scenes").is_none() && value.get("entities").is_some() {
-            let scene: Scene = serde_json::from_value(value).map_err(|e| ProjectError::Parse(e.to_string()))?;
+            let scene: Scene = serde_json::from_value(value).map_err(|error| ProjectError::Parse(error.to_string()))?;
             let mut project = Self::new(path.file_stem().and_then(|s| s.to_str()).unwrap_or("Imported Project"));
             project.scenes[0].scene = scene;
             return Ok(project);
         }
 
-        let mut project: Self = serde_json::from_value(value).map_err(|e| ProjectError::Parse(e.to_string()))?;
+        let mut project: Self = serde_json::from_value(value)
+            .map_err(|error| ProjectError::Parse(error.to_string()))?;
         if project.format_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(project.format_version));
         }
-        // Version 1 had the same scene payload but no formal signature.
         if project.format_version == 1 {
             project.magic = PROJECT_MAGIC.to_owned();
             project.format_version = CURRENT_FORMAT_VERSION;
         }
         let issues = project.validate();
-        if !issues.is_empty() { return Err(ProjectError::Invalid(issues)); }
+        if !issues.is_empty() {
+            return Err(ProjectError::Invalid(issues));
+        }
         Ok(project)
     }
 
@@ -326,6 +345,23 @@ mod tests {
         let current = ProjectDocument::load(&path).unwrap();
         assert_eq!(previous.project_name, "Before");
         assert_eq!(current.project_name, "After");
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
+    }
+
+    #[test]
+    fn corrupted_primary_project_recovers_from_backup() {
+        let path = std::env::temp_dir().join(format!("astra-recovery-{}-{}.astra", std::process::id(), now_secs()));
+        let backup = path.parent().unwrap().join(format!(".{}.bak", path.file_name().unwrap().to_string_lossy()));
+        let mut project = ProjectDocument::new("Recoverable");
+        project.save_atomic(&path).unwrap();
+        project.project_name = "New version".to_owned();
+        project.save_atomic(&path).unwrap();
+
+        fs::write(&path, b"{ corrupted json").unwrap();
+        let recovered = ProjectDocument::load(&path).unwrap();
+        assert_eq!(recovered.project_name, "Recoverable");
 
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(backup);
