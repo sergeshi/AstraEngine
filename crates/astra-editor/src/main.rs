@@ -228,8 +228,7 @@ impl AstraEditor {
                 project = recovered;
                 was_recovered = true;
                 state.scene = project.active_scene().cloned().unwrap_or_default();
-                project_path = None;
-                state.console_lines.push("Recovered a newer autosaved project.".to_owned());
+                state.console_lines.push("Recovered a newer autosaved project; the original project path and its asset folder are retained.".to_owned());
             }
         }
         let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
