@@ -567,7 +567,8 @@ mod tests {
         let geometry = MeshGeometry::new(vec![[0.0,0.0,0.0],[1.0,0.0,0.0],[0.0,1.0,0.0]], vec![0,1,2], "legacy.obj").unwrap();
         project.active_scene_mut().unwrap().get_mut(id).unwrap().mesh_component = Some(MeshComponent::Imported(geometry));
         let mut value = serde_json::to_value(&project).unwrap();
-        let entity = &mut value["scenes"][0]["scene"]["entities"][id.0.to_string()];
+        let entity_key = id.0.to_string();
+        let entity = value["scenes"][0]["scene"]["entities"].get_mut(&entity_key).unwrap();
         entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("normals");
         entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("uvs");
         entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("imported_material");
