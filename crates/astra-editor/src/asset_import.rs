@@ -255,7 +255,7 @@ fn load_fbx(path: &Path, source: String, asset_root: Option<&Path>) -> Result<Me
                 let base_color = if pbr.base_color.has_value { [base.x as f32, base.y as f32, base.z as f32, base.w as f32] } else { [0.72, 0.74, 0.78, 1.0] };
                 let metallic = if pbr.metalness.has_value { pbr.metalness.value_vec4.x as f32 } else { 0.0 };
                 let roughness = if pbr.roughness.has_value { pbr.roughness.value_vec4.x as f32 } else { 0.65 };
-                let mut material = Material { base_color, metallic: metallic.clamp(0.0, 1.0), roughness: roughness.clamp(0.0, 1.0), base_color_texture: None };
+                let mut material = Material { base_color, metallic: metallic.clamp(0.0, 1.0), roughness: roughness.clamp(0.0, 1.0), base_color_texture: None, metallic_roughness_texture: None };
                 if let (Some(texture), Some(root)) = (pbr.base_color.texture.as_ref(), asset_root) {
                     let texture_name = texture.filename.as_ref();
                     let texture_path = Path::new(texture.absolute_filename.as_ref());
