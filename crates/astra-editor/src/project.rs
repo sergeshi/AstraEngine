@@ -356,7 +356,7 @@ fn normalize_legacy_mesh_attributes(scene: &mut Scene) {
 fn material_is_valid(material: &astra_scene::Material) -> bool {
     material.base_color.iter().all(|value| value.is_finite())
         && material.metallic.is_finite() && material.roughness.is_finite()
-        && material.base_color_texture.as_ref().is_none_or(|path| {
+        && [material.base_color_texture.as_ref(), material.metallic_roughness_texture.as_ref()].into_iter().flatten().all(|path| {
             let path = Path::new(path);
             !path.is_absolute() && !path.components().any(|part| matches!(part, std::path::Component::ParentDir))
         })
