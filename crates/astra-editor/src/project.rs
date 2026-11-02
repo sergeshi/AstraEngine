@@ -11,7 +11,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-pub const CURRENT_FORMAT_VERSION: u32 = 3;
+pub const CURRENT_FORMAT_VERSION: u32 = 4;
 const PROJECT_MAGIC: &str = "ASTRA_ENGINE_PROJECT";
 const AUTOSAVE_INTERVAL_SECS: u64 = 60;
 
@@ -27,6 +27,25 @@ pub struct ProjectDocument {
     pub modified_unix_secs: u64,
     pub active_scene_id: String,
     pub scenes: Vec<SceneDocument>,
+    #[serde(default)]
+    pub textures: Vec<TextureAsset>,
+    #[serde(default)]
+    pub materials: Vec<MaterialAsset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextureAsset {
+    pub id: String,
+    pub name: String,
+    /// Path relative to the project directory, never an absolute source path.
+    pub relative_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MaterialAsset {
+    pub id: String,
+    pub name: String,
+    pub material: astra_scene::Material,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +115,8 @@ impl ProjectDocument {
             modified_unix_secs: now,
             active_scene_id: scene_id.clone(),
             scenes: vec![SceneDocument { id: scene_id, name: "Main".to_owned(), scene: default_scene() }],
+            textures: Vec::new(),
+            materials: Vec::new(),
         }
     }
 
@@ -194,6 +215,21 @@ impl ProjectDocument {
                 issues.push(issue(&location, "Scene name cannot be empty"));
             }
             validate_scene(&entry.scene, &location, &mut issues);
+        }
+        let mut texture_ids = BTreeSet::new();
+        for (index, texture) in self.textures.iter().enumerate() {
+            let location = format!("textures[{index}]");
+            let path = Path::new(&texture.relative_path);
+            if texture.id.trim().is_empty() || !texture_ids.insert(texture.id.as_str()) || texture.name.trim().is_empty()
+                || path.is_absolute() || path.components().any(|component| matches!(component, std::path::Component::ParentDir)) {
+                issues.push(issue(&location, "Texture asset has an invalid ID, name, or project-relative path"));
+            }
+        }
+        let mut material_ids = BTreeSet::new();
+        for (index, material) in self.materials.iter().enumerate() {
+            if material.id.trim().is_empty() || !material_ids.insert(material.id.as_str()) || material.name.trim().is_empty() {
+                issues.push(issue(&format!("materials[{index}]"), "Material asset has an invalid ID or name"));
+            }
         }
         if !scene_ids.contains(self.active_scene_id.as_str()) {
             issues.push(issue("active_scene_id", "Active scene does not exist"));
