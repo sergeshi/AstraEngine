@@ -459,6 +459,20 @@ impl AstraEditor {
         if let Some(name) = path.file_stem().and_then(|value| value.to_str()) {
             project.project_name = name.to_owned();
         }
+        if let Some(old_path) = self.project_path.as_ref() {
+            let old_root = old_path.parent().unwrap_or(std::path::Path::new("."));
+            let new_root = path.parent().unwrap_or(std::path::Path::new("."));
+            if old_root != new_root {
+                for texture in &project.textures {
+                    let source = old_root.join(&texture.relative_path);
+                    let destination = new_root.join(&texture.relative_path);
+                    if source.exists() {
+                        if let Some(parent) = destination.parent() { if let Err(error) = std::fs::create_dir_all(parent) { self.log(format!("Save As asset copy failed: {error}")); return false; } }
+                        if let Err(error) = std::fs::copy(&source, &destination) { self.log(format!("Save As asset copy failed: {error}")); return false; }
+                    }
+                }
+            }
+        }
         match project.save_atomic(&path) {
             Ok(()) => {
                 self.project = project;
