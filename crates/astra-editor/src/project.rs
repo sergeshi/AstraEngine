@@ -225,7 +225,7 @@ impl ProjectDocument {
         for (index, texture) in self.textures.iter().enumerate() {
             let location = format!("textures[{index}]");
             let path = Path::new(&texture.relative_path);
-            if texture.id.trim().is_empty() || !texture_ids.insert(texture.id.as_str()) || texture.name.trim().is_empty()
+            if texture.id.trim().is_empty() || !texture_ids.insert(texture.id.as_str()) || texture.name.trim().is_empty() || texture.relative_path.trim().is_empty()
                 || path.is_absolute() || path.components().any(|component| matches!(component, std::path::Component::ParentDir)) {
                 issues.push(issue(&location, "Texture asset has an invalid ID, name, or project-relative path"));
             } else {
@@ -366,7 +366,7 @@ fn material_is_valid(material: &astra_scene::Material) -> bool {
         && material.metallic.is_finite() && material.roughness.is_finite()
         && [material.base_color_texture.as_ref(), material.metallic_roughness_texture.as_ref()].into_iter().flatten().all(|path| {
             let path = Path::new(path);
-            !path.is_absolute() && !path.components().any(|part| matches!(part, std::path::Component::ParentDir))
+            !path.as_os_str().is_empty() && !path.is_absolute() && !path.components().any(|part| matches!(part, std::path::Component::ParentDir))
         })
 }
 
