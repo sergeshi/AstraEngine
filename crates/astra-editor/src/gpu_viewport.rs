@@ -195,6 +195,8 @@ fn build_scene_vertices(scene: &Scene, selected_entity: Option<EntityId>) -> Vec
         let Some(transform) = scene.world_matrix(entity.id) else { continue; };
         let color = if selected_entity == Some(entity.id) {
             [0.98, 0.78, 0.28]
+        } else if let Some(material) = entity.material {
+            [material.base_color[0], material.base_color[1], material.base_color[2]]
         } else {
             match mesh {
                 PrimitiveMesh::Cube => [0.55, 0.63, 0.78],
