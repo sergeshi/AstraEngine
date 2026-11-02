@@ -1,6 +1,6 @@
 //! Versioned AstraEngine project container, validation and crash-safe persistence.
 
-use astra_scene::{EntityId, Scene};
+use astra_scene::{EntityId, MeshComponent, Scene};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
@@ -304,6 +304,15 @@ fn validate_scene(scene: &Scene, location: &str, issues: &mut Vec<ValidationIssu
         }
         if entity.parent.is_some_and(|parent| scene.get(parent).is_none()) {
             issues.push(issue(location, &format!("Entity {} references a missing parent", entity.id.0)));
+        }
+        if let Some(MeshComponent::Imported(mesh)) = &entity.mesh_component {
+            if mesh.positions.is_empty() || mesh.indices.is_empty() || mesh.indices.len() % 3 != 0
+                || mesh.positions.iter().flatten().any(|value| !value.is_finite())
+                || mesh.indices.iter().any(|index| *index as usize >= mesh.positions.len())
+                || mesh.bounds_min.iter().chain(mesh.bounds_max.iter()).any(|value| !value.is_finite())
+            {
+                issues.push(issue(location, &format!("Entity {} has invalid imported mesh geometry", entity.id.0)));
+            }
         }
         let mut visited = BTreeSet::<EntityId>::new();
         let mut cursor = Some(entity.id);
