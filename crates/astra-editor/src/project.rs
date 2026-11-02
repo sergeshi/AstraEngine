@@ -11,7 +11,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-pub const CURRENT_FORMAT_VERSION: u32 = 2;
+pub const CURRENT_FORMAT_VERSION: u32 = 3;
 const PROJECT_MAGIC: &str = "ASTRA_ENGINE_PROJECT";
 const AUTOSAVE_INTERVAL_SECS: u64 = 60;
 
@@ -257,7 +257,7 @@ impl ProjectDocument {
         if project.format_version > CURRENT_FORMAT_VERSION {
             return Err(ProjectError::UnsupportedVersion(project.format_version));
         }
-        if project.format_version == 1 {
+        if project.format_version < CURRENT_FORMAT_VERSION {
             project.magic = PROJECT_MAGIC.to_owned();
             project.format_version = CURRENT_FORMAT_VERSION;
         }
