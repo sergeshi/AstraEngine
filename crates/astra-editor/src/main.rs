@@ -1136,8 +1136,9 @@ impl EditorTabViewer<'_> {
 
         if let Some(id) = self.state.selected_entity {
             if let Some(entity) = self.state.scene.get(id) {
-                if let (Some(mesh), Some(matrix)) = (entity.mesh, self.state.scene.world_matrix(id)) {
-                    let (min, max) = mesh.local_bounds();
+                let mesh_bounds = entity.mesh_component.as_ref().map(MeshComponent::local_bounds)
+                    .or_else(|| entity.mesh.map(PrimitiveMesh::local_bounds));
+                if let (Some((min, max)), Some(matrix)) = (mesh_bounds, self.state.scene.world_matrix(id)) {
                     let pivot = Vec3::from_array(entity.pivot);
                     let corners = [
                         Vec3::new(min[0],min[1],min[2]), Vec3::new(max[0],min[1],min[2]),
