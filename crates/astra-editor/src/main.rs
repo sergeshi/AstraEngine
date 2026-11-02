@@ -54,6 +54,8 @@ struct EditorState {
     #[serde(default)]
     redo_stack: Vec<Scene>,
     console_lines: Vec<String>,
+    #[serde(default)]
+    dirty: bool,
 }
 
 impl Default for EditorState {
@@ -73,26 +75,28 @@ impl Default for EditorState {
                 "AstraEngine Editor 0.4 initialized.".to_owned(),
                 "Hierarchy and Inspector use the shared scene model.".to_owned(),
             ],
+            dirty: false,
         }
     }
 }
 
 impl EditorState {
     fn checkpoint(&mut self) {
+        self.dirty = true;
         self.undo_stack.push(self.scene.clone());
         if self.undo_stack.len() > 128 { self.undo_stack.remove(0); }
         self.redo_stack.clear();
     }
     fn undo(&mut self) {
         if let Some(previous) = self.undo_stack.pop() {
-            self.redo_stack.push(self.scene.clone()); self.scene = previous;
+            self.redo_stack.push(self.scene.clone()); self.scene = previous; self.dirty = true;
             self.selected_entities.retain(|id| self.scene.get(*id).is_some());
             self.selected_entity = self.selected_entities.last().copied();
         }
     }
     fn redo(&mut self) {
         if let Some(next) = self.redo_stack.pop() {
-            self.undo_stack.push(self.scene.clone()); self.scene = next;
+            self.undo_stack.push(self.scene.clone()); self.scene = next; self.dirty = true;
             self.selected_entities.retain(|id| self.scene.get(*id).is_some());
             self.selected_entity = self.selected_entities.last().copied();
         }
@@ -178,7 +182,7 @@ struct AstraEditor {
     gizmo_drag: Option<GizmoDrag>,
     project: ProjectDocument,
     project_path: Option<PathBuf>,
-    saved_snapshot: Vec<u8>,
+    project_dirty: bool,
     last_autosave: SystemTime,
     pending_action: Option<PendingAction>,
 }
@@ -210,16 +214,16 @@ impl AstraEditor {
             .and_then(|storage| eframe::get_value::<String>(storage, PROJECT_PATH_KEY))
             .map(PathBuf::from);
         let recovery_path = ProjectDocument::autosave_path();
+        let mut was_recovered = false;
         if let Ok(recovered) = ProjectDocument::load(&recovery_path) {
             if recovered.modified_unix_secs > project.modified_unix_secs {
                 project = recovered;
+                was_recovered = true;
                 state.scene = project.active_scene().cloned().unwrap_or_default();
                 project_path = None;
                 state.console_lines.push("Recovered a newer autosaved project.".to_owned());
             }
         }
-        let saved_snapshot = serde_json::to_vec(&project).unwrap_or_default();
-
         let gpu_viewport = cc.gl.as_ref().and_then(|gl| match GpuViewport::new(gl) {
             Ok(renderer) => {
                 state
@@ -248,7 +252,7 @@ impl AstraEditor {
             gizmo_drag: None,
             project,
             project_path,
-            saved_snapshot,
+            project_dirty: was_recovered,
             last_autosave: SystemTime::now(),
             pending_action: None,
         }
@@ -267,7 +271,7 @@ impl AstraEditor {
     }
 
     fn is_project_dirty(&self) -> bool {
-        serde_json::to_vec(&self.project_snapshot()).map(|bytes| bytes != self.saved_snapshot).unwrap_or(true)
+        self.project_dirty || self.state.dirty
     }
 
     fn reset_scene_editor_state(&mut self, scene: Scene) {
@@ -276,6 +280,7 @@ impl AstraEditor {
         self.state.selected_entity = None;
         self.state.undo_stack.clear();
         self.state.redo_stack.clear();
+        self.state.dirty = false;
         self.gizmo_drag = None;
     }
 
@@ -286,7 +291,7 @@ impl AstraEditor {
         self.state = state;
         self.project = project;
         self.project_path = None;
-        self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+        self.project_dirty = false;
         self.log("Created a new AstraEngine project.");
     }
 
@@ -324,7 +329,8 @@ impl AstraEditor {
                 self.project = project;
                 self.project_path = Some(path.to_path_buf());
                 self.reset_scene_editor_state(scene);
-                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                self.project_dirty = false;
+                self.state.dirty = false;
                 let _ = std::fs::remove_file(ProjectDocument::autosave_path());
                 self.log(format!("Opened project: {}", path.display()));
             }
@@ -341,7 +347,8 @@ impl AstraEditor {
         match project.save_atomic(&path) {
             Ok(()) => {
                 self.project = project;
-                self.saved_snapshot = serde_json::to_vec(&self.project).unwrap_or_default();
+                self.project_dirty = false;
+                self.state.dirty = false;
                 let _ = std::fs::remove_file(ProjectDocument::autosave_path());
                 self.log(format!("Saved project: {}", path.display()));
                 true
@@ -384,7 +391,9 @@ impl AstraEditor {
 
     fn add_scene(&mut self) {
         if let Some(scene) = self.project.active_scene_mut() { *scene = self.state.scene.clone(); }
-        self.project.add_scene(format!("Scene {}", self.project.scenes.len() + 1));
+        let next_scene_number = self.project.scenes.len() + 1;
+        self.project.add_scene(format!("Scene {next_scene_number}"));
+        self.project_dirty = true;
         self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
         self.log("Added a new scene.");
     }
@@ -393,6 +402,7 @@ impl AstraEditor {
         if id == self.project.active_scene_id { return; }
         if let Some(scene) = self.project.active_scene_mut() { *scene = self.state.scene.clone(); }
         if self.project.set_active_scene(id) {
+            self.project_dirty = true;
             self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
             self.log(format!("Switched to scene: {}", self.project.scenes.iter().find(|s| s.id == id).map(|s| s.name.as_str()).unwrap_or(id)));
         }
@@ -1017,6 +1027,7 @@ impl EditorTabViewer<'_> {
                 vector3_editor(ui, "Scale", &mut entity.transform.scale);
             });
         if before != self.state.scene {
+            self.state.dirty = true;
             self.state.undo_stack.push(before);
             self.state.redo_stack.clear();
         }
@@ -1140,6 +1151,7 @@ fn reparent_entity(state: &mut EditorState, entity: EntityId, parent: Option<Ent
 
     let before = state.scene.clone();
     if state.scene.set_parent(entity, parent, true).is_ok() {
+        state.dirty = true;
         state.undo_stack.push(before);
         if state.undo_stack.len() > 128 { state.undo_stack.remove(0); }
         state.redo_stack.clear();
