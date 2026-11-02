@@ -1361,7 +1361,7 @@ impl EditorTabViewer<'_> {
                     ui.weak("No material assigned.");
                     false
                 };
-                if remove_material { entity.material = None; }
+                if remove_material { entity.material = None; entity.material_asset_id = None; }
             });
 
         egui::CollapsingHeader::new("Components")
@@ -1374,6 +1374,14 @@ impl EditorTabViewer<'_> {
         }
 
         if before != self.state.scene {
+            if let Some(entity) = self.state.scene.get(selected) {
+                if let (Some(asset_id), Some(material)) = (entity.material_asset_id.as_ref(), entity.material.as_ref()) {
+                    if let Some(asset) = self.project.materials.iter_mut().find(|asset| &asset.id == asset_id) {
+                        asset.material = material.clone();
+                        *self.project_dirty = true;
+                    }
+                }
+            }
             self.state.dirty = true;
             self.state.undo_stack.push(before);
             self.state.redo_stack.clear();
