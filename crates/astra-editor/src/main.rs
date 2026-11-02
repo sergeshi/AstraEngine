@@ -174,6 +174,7 @@ struct AstraEditor {
     dock_state: DockState<EditorTab>,
     state: EditorState,
     gpu_viewport: Option<Arc<Mutex<GpuViewport>>>,
+    project: &'a mut ProjectDocument,
     camera_yaw: f32,
     camera_pitch: f32,
     camera_distance: f32,
@@ -266,6 +267,37 @@ impl AstraEditor {
 
     fn log(&mut self, message: impl Into<String>) {
         self.state.console_lines.push(message.into());
+    }
+
+    fn import_texture(&mut self) {
+        if self.project_path.is_none() && !self.save_project_as() { return; }
+        let Some(source) = rfd::FileDialog::new().add_filter("Images", &["png", "jpg", "jpeg", "webp", "bmp", "tga", "tif", "tiff"]).pick_file() else { return; };
+        let Some(project_path) = self.project_path.as_ref() else { return; };
+        match image::image_dimensions(&source) {
+            Ok((width, height)) if width > 0 && height > 0 => {
+                let root = project_path.parent().unwrap_or(std::path::Path::new("."));
+                let directory = root.join("Assets").join("Textures");
+                let result = (|| -> Result<String, String> {
+                    std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
+                    let extension = source.extension().and_then(|e| e.to_str()).unwrap_or("png");
+                    let name = source.file_stem().and_then(|n| n.to_str()).unwrap_or("Texture");
+                    let id = format!("texture-{:x}-{:x}", std::process::id(), self.project.textures.len() + 1);
+                    let filename = format!("{id}.{extension}");
+                    let destination = directory.join(&filename);
+                    std::fs::copy(&source, &destination).map_err(|e| e.to_string())?;
+                    let relative_path = format!("Assets/Textures/{filename}");
+                    self.project.textures.push(project::TextureAsset { id, name: name.to_owned(), relative_path: relative_path.clone() });
+                    self.project_dirty = true;
+                    Ok(relative_path)
+                })();
+                match result {
+                    Ok(relative) => self.log(format!("Imported texture {} ({}×{}): {}", source.display(), width, height, relative)),
+                    Err(error) => self.log(format!("Texture import failed: {error}")),
+                }
+            }
+            Ok(_) => self.log("Texture has invalid dimensions."),
+            Err(error) => self.log(format!("Texture decode failed: {error}")),
+        }
     }
 
     fn import_mesh(&mut self) {
@@ -669,6 +701,7 @@ impl AstraEditor {
                 if ui.button("Open").clicked() { self.request_open_project(); }
                 if ui.button("Save").clicked() { self.save_project(); }
                 if ui.button("Import Mesh").clicked() { self.import_mesh(); }
+                if ui.button("Import Texture").clicked() { self.import_texture(); }
                 ui.menu_button("＋ Primitive", |ui| {
                     for (label, mesh) in [
                         ("Cube", PrimitiveMesh::Cube),
@@ -803,6 +836,7 @@ impl eframe::App for AstraEditor {
             let mut viewer = EditorTabViewer {
                 state: &mut self.state,
                 gpu_viewport: self.gpu_viewport.clone(),
+                project: &mut self.project,
                 camera_yaw: &mut self.camera_yaw,
                 camera_pitch: &mut self.camera_pitch,
                 camera_distance: &mut self.camera_distance,
@@ -1264,6 +1298,17 @@ impl EditorTabViewer<'_> {
                     }
                     ui.add(egui::Slider::new(&mut material.metallic, 0.0..=1.0).text("Metallic"));
                     ui.add(egui::Slider::new(&mut material.roughness, 0.0..=1.0).text("Roughness"));
+                    let selected_texture = material.base_color_texture.clone().unwrap_or_default();
+                    egui::ComboBox::from_id_salt("material_base_color_texture")
+                        .selected_text(if selected_texture.is_empty() { "Base Color Texture: None".to_owned() } else { format!("Base Color: {}", selected_texture) })
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(selected_texture.is_empty(), "None").clicked() { material.base_color_texture = None; }
+                            for texture in &self.project.textures {
+                                if ui.selectable_label(selected_texture == texture.relative_path, &texture.name).clicked() {
+                                    material.base_color_texture = Some(texture.relative_path.clone());
+                                }
+                            }
+                        });
                     ui.button("Remove Material").clicked()
                 } else {
                     ui.weak("No material assigned.");
@@ -1290,29 +1335,25 @@ impl EditorTabViewer<'_> {
 
     fn content_browser_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.strong("Content");
-            ui.separator();
-            ui.label("AstraProject / Content");
+            ui.strong("Content"); ui.separator(); ui.label(format!("{} / Assets", self.project.project_name));
         });
         ui.separator();
-        ui.horizontal_wrapped(|ui| {
-            for (icon, name) in [
-                ("📁", "Meshes"),
-                ("📁", "Materials"),
-                ("📁", "Textures"),
-                ("📁", "Scenes"),
-                ("📁", "Audio"),
-            ] {
-                ui.group(|ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading(icon);
-                        ui.label(name);
-                    });
+        ui.horizontal(|ui| {
+            ui.strong("Textures");
+            ui.label(format!("{} imported", self.project.textures.len()));
+        });
+        if self.project.textures.is_empty() { ui.weak("No textures imported yet. Use Import Texture in the toolbar."); }
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for texture in &self.project.textures {
+                ui.horizontal(|ui| {
+                    ui.label("▧"); ui.strong(&texture.name); ui.monospace(&texture.relative_path);
                 });
             }
+            ui.separator();
+            ui.strong("Materials");
+            for material in &self.project.materials { ui.label(format!("◉ {}", material.name)); }
+            if self.project.materials.is_empty() { ui.weak("Materials currently live on scene entities; reusable material assets are next."); }
         });
-        ui.add_space(8.0);
-        ui.weak("Asset indexing and file operations will be added with the project system.");
     }
 
     fn console_ui(&mut self, ui: &mut Ui) {
