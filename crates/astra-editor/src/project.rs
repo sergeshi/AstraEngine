@@ -560,6 +560,27 @@ mod tests {
     }
 
     #[test]
+    fn version_three_mesh_without_attributes_migrates_with_generated_attributes() {
+        let mut project = ProjectDocument::new("Legacy Attributes");
+        project.format_version = 3;
+        let id = project.active_scene_mut().unwrap().spawn("Old Mesh");
+        let geometry = MeshGeometry::new(vec![[0.0,0.0,0.0],[1.0,0.0,0.0],[0.0,1.0,0.0]], vec![0,1,2], "legacy.obj").unwrap();
+        project.active_scene_mut().unwrap().get_mut(id).unwrap().mesh_component = Some(MeshComponent::Imported(geometry));
+        let mut value = serde_json::to_value(&project).unwrap();
+        let entity = &mut value["scenes"][0]["scene"]["entities"][id.0.to_string()];
+        entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("normals");
+        entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("uvs");
+        entity["mesh_component"]["Imported"].as_object_mut().unwrap().remove("imported_material");
+        let path = std::env::temp_dir().join(format!("astra-v3-attrs-{}.astra", std::process::id()));
+        fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+        let loaded = ProjectDocument::load(&path).unwrap();
+        let Some(MeshComponent::Imported(mesh)) = loaded.active_scene().unwrap().get(id).unwrap().mesh_component.as_ref() else { panic!("mesh not migrated"); };
+        assert_eq!(mesh.normals.len(), 3);
+        assert_eq!(mesh.uvs.len(), 3);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
     fn project_round_trips_texture_and_material_assets() {
         let path = std::env::temp_dir().join(format!("astra-assets-{}.astra", std::process::id()));
         let mut project = ProjectDocument::new("Assets Test");
