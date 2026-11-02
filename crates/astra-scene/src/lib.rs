@@ -450,6 +450,27 @@ mod tests {
     }
 
     #[test]
+    fn legacy_imported_mesh_without_normals_or_uvs_still_deserializes() {
+        let mesh = MeshGeometry::new(vec![[0.0,0.0,0.0],[1.0,0.0,0.0],[0.0,1.0,0.0]], vec![0,1,2], "old.obj").unwrap();
+        let mut value = serde_json::to_value(&mesh).unwrap();
+        value.as_object_mut().unwrap().remove("normals");
+        value.as_object_mut().unwrap().remove("uvs");
+        value.as_object_mut().unwrap().remove("imported_material");
+        let decoded: MeshGeometry = serde_json::from_value(value).unwrap();
+        assert!(decoded.normals.is_empty());
+        assert!(decoded.uvs.is_empty());
+        assert_eq!(decoded.positions, mesh.positions);
+    }
+
+    #[test]
+    fn legacy_material_without_texture_reference_still_deserializes() {
+        let value = serde_json::json!({"base_color":[0.2,0.3,0.4,1.0],"metallic":0.5,"roughness":0.4});
+        let material: Material = serde_json::from_value(value).unwrap();
+        assert_eq!(material.base_color_texture, None);
+        assert_eq!(material.metallic, 0.5);
+    }
+
+    #[test]
     fn imported_mesh_rejects_invalid_indices_and_non_finite_positions() {
         assert!(MeshGeometry::new(vec![[0.0; 3]], vec![0, 1, 0], "bad.obj").is_err());
         assert!(MeshGeometry::new(vec![[f32::NAN, 0.0, 0.0]], vec![0, 0, 0], "bad.obj").is_err());
