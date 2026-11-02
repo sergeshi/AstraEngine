@@ -29,6 +29,9 @@ pub struct ProjectDocument {
     pub scenes: Vec<SceneDocument>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SceneTemplate { Empty, Default }
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SceneDocument {
     pub id: String,
@@ -118,6 +121,49 @@ impl ProjectDocument {
         } else {
             false
         }
+    }
+
+    pub fn rename_scene(&mut self, id: &str, name: impl Into<String>) -> bool {
+        let name = name.into();
+        if name.trim().is_empty() { return false; }
+        if let Some(scene) = self.scenes.iter_mut().find(|scene| scene.id == id) {
+            scene.name = name.trim().to_owned();
+            true
+        } else { false }
+    }
+
+    pub fn duplicate_scene(&mut self, id: &str) -> Option<String> {
+        let source = self.scenes.iter().find(|scene| scene.id == id)?.clone();
+        let new_id = new_id("scene");
+        self.scenes.push(SceneDocument {
+            id: new_id.clone(),
+            name: format!("{} Copy", source.name),
+            scene: source.scene,
+        });
+        self.active_scene_id = new_id.clone();
+        Some(new_id)
+    }
+
+    pub fn remove_scene(&mut self, id: &str) -> bool {
+        if self.scenes.len() <= 1 { return false; }
+        let Some(index) = self.scenes.iter().position(|scene| scene.id == id) else { return false; };
+        self.scenes.remove(index);
+        if self.active_scene_id == id {
+            let next = index.min(self.scenes.len() - 1);
+            self.active_scene_id = self.scenes[next].id.clone();
+        }
+        true
+    }
+
+    pub fn add_scene_from_template(&mut self, name: impl Into<String>, template: SceneTemplate) -> String {
+        let id = new_id("scene");
+        let scene = match template {
+            SceneTemplate::Empty => Scene::new(),
+            SceneTemplate::Default => default_scene(),
+        };
+        self.scenes.push(SceneDocument { id: id.clone(), name: name.into(), scene });
+        self.active_scene_id = id.clone();
+        id
     }
 
     pub fn validate(&self) -> Vec<ValidationIssue> {
@@ -310,6 +356,33 @@ mod tests {
         let decoded: ProjectDocument = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded.scenes.len(), 2);
         assert_eq!(decoded.active_scene_id, project.active_scene_id);
+    }
+
+    #[test]
+    fn scene_operations_preserve_content_and_protect_last_scene() {
+        let mut project = ProjectDocument::new("Scene Ops");
+        let original_id = project.active_scene_id.clone();
+        let original_count = project.active_scene().unwrap().len();
+        assert!(project.rename_scene(&original_id, "Renamed"));
+        assert_eq!(project.scenes[0].name, "Renamed");
+
+        let duplicate_id = project.duplicate_scene(&original_id).unwrap();
+        assert_eq!(project.active_scene().unwrap().len(), original_count);
+        assert_eq!(project.scenes[1].name, "Renamed Copy");
+        assert!(project.remove_scene(&duplicate_id));
+        assert_eq!(project.scenes.len(), 1);
+        assert!(!project.remove_scene(&original_id));
+        assert_eq!(project.active_scene_id, original_id);
+    }
+
+    #[test]
+    fn scene_templates_create_empty_or_default_content() {
+        let mut project = ProjectDocument::new("Templates");
+        let empty_id = project.add_scene_from_template("Empty", SceneTemplate::Empty);
+        assert_eq!(project.active_scene().unwrap().len(), 0);
+        let default_id = project.add_scene_from_template("Default", SceneTemplate::Default);
+        assert_eq!(project.active_scene().unwrap().len(), 3);
+        assert_ne!(empty_id, default_id);
     }
 
     #[test]
