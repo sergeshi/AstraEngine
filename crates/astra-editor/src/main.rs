@@ -675,38 +675,36 @@ impl AstraEditor {
                     .selected_text(format!("Scene: {active_name}"))
                     .show_ui(ui, |ui| {
                         for (id, name) in &scenes {
-                            ui.horizontal(|ui| {
-                                if ui.selectable_label(*id == self.project.active_scene_id, name).clicked() {
-                                    self.switch_scene(id);
-                                }
-                                ui.menu_button("⋯", |ui| {
-                                    if ui.button("Rename").clicked() {
-                                        self.scene_name_dialog = Some((id.clone(), name.clone()));
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("Duplicate").clicked() {
-                                        if *id == self.project.active_scene_id { self.duplicate_active_scene(); }
-                                        else {
-                                            self.store_active_scene();
-                                            if self.project.duplicate_scene(id).is_some() {
-                                                self.project_dirty = true;
-                                                self.reset_scene_editor_state(self.project.active_scene().cloned().unwrap_or_default());
-                                                self.log("Duplicated scene.");
-                                            }
-                                        }
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("Delete").clicked() {
-                                        self.scene_delete_confirmation = Some(id.clone());
-                                        ui.close_menu();
-                                    }
-                                });
-                            });
+                            if ui.selectable_label(*id == self.project.active_scene_id, name).clicked() {
+                                self.switch_scene(id);
+                            }
                         }
-                        ui.separator();
-                        if ui.button("＋ Default Scene").clicked() { self.add_scene_from_template(SceneTemplate::Default); }
-                        if ui.button("＋ Empty Scene").clicked() { self.add_scene_from_template(SceneTemplate::Empty); }
                     });
+                ui.menu_button("⋯", |ui| {
+                    let active_id = self.project.active_scene_id.clone();
+                    if ui.button("Rename").clicked() {
+                        self.scene_name_dialog = Some((active_id.clone(), active_name.clone()));
+                        ui.close_menu();
+                    }
+                    if ui.button("Duplicate").clicked() {
+                        self.duplicate_active_scene();
+                        ui.close_menu();
+                    }
+                    if ui.button("Delete").clicked() {
+                        self.scene_delete_confirmation = Some(active_id);
+                        ui.close_menu();
+                    }
+                });
+                ui.menu_button("＋ Scene", |ui| {
+                    if ui.button("Default Scene").clicked() {
+                        self.add_scene_from_template(SceneTemplate::Default);
+                        ui.close_menu();
+                    }
+                    if ui.button("Empty Scene").clicked() {
+                        self.add_scene_from_template(SceneTemplate::Empty);
+                        ui.close_menu();
+                    }
+                });
                 if self.is_project_dirty() { ui.label("●"); }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label("Windows · Editor 0.4");
