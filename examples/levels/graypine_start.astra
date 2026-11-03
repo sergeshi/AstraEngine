@@ -1,0 +1,6055 @@
+{
+  "format_version": 4,
+  "magic": "ASTRA_ENGINE_PROJECT",
+  "project_id": "graypine-start-001",
+  "project_name": "Graypine — стартовый квартал",
+  "created_unix_secs": 1793720218,
+  "modified_unix_secs": 1793720218,
+  "active_scene_id": "scene-graypine-01",
+  "scenes": [
+    {
+      "id": "scene-graypine-01",
+      "name": "Graypine / Starting Quarter",
+      "scene": {
+        "next_id": 138,
+        "entities": {
+          "1": {
+            "id": 1,
+            "name": "START / Player spawn marker",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": null,
+            "mesh_component": null,
+            "material": null,
+            "material_asset_id": null
+          },
+          "2": {
+            "id": 2,
+            "name": "LIGHT / Directional light",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": null,
+            "mesh_component": null,
+            "material": null,
+            "material_asset_id": null
+          },
+          "3": {
+            "id": 3,
+            "name": "LANDMARK / Water tower anchor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": null,
+            "mesh_component": null,
+            "material": null,
+            "material_asset_id": null
+          },
+          "4": {
+            "id": 4,
+            "name": "MAIN STREET / asphalt",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -0.22,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                4.8,
+                0.18,
+                34
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.2,
+                0.22,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "5": {
+            "id": 5,
+            "name": "CROSS STREET / asphalt",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -0.2,
+                -1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                33,
+                0.18,
+                4
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.2,
+                0.22,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "6": {
+            "id": 6,
+            "name": "West sidewalk",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -6,
+                -0.08,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                0.12,
+                33
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.44,
+                0.41,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "7": {
+            "id": 7,
+            "name": "East sidewalk",
+            "parent": null,
+            "transform": {
+              "translation": [
+                6,
+                -0.08,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                0.12,
+                33
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.44,
+                0.41,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "8": {
+            "id": 8,
+            "name": "North sidewalk",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -0.08,
+                -6
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                33,
+                0.12,
+                0.9
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.44,
+                0.41,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "9": {
+            "id": 9,
+            "name": "South sidewalk",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -0.08,
+                6
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                33,
+                0.12,
+                0.9
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.44,
+                0.41,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "10": {
+            "id": 10,
+            "name": "01 GENERAL STORE / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                0.05,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.5,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "11": {
+            "id": 11,
+            "name": "01 GENERAL STORE / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                1.6,
+                -15.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.5,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "12": {
+            "id": 12,
+            "name": "01 GENERAL STORE / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -23.16,
+                1.6,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "13": {
+            "id": 13,
+            "name": "01 GENERAL STORE / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14.84,
+                1.6,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "14": {
+            "id": 14,
+            "name": "01 GENERAL STORE / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                2.92,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.8200000000000003,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "15": {
+            "id": 15,
+            "name": "01 GENERAL STORE / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -25.5,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "16": {
+            "id": 16,
+            "name": "01 GENERAL STORE / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -12.5,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "17": {
+            "id": 17,
+            "name": "01 GENERAL STORE / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -23.16,
+                3.3200000000000003,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "18": {
+            "id": 18,
+            "name": "01 GENERAL STORE / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14.84,
+                3.3200000000000003,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "19": {
+            "id": 19,
+            "name": "01 GENERAL STORE / interior partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.45500000000000007,
+                1.6,
+                4.62
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "20": {
+            "id": 20,
+            "name": "01 GENERAL STORE / upper floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                3.3200000000000003,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.24,
+                0.12,
+                5.279999999999999
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "21": {
+            "id": 21,
+            "name": "01 GENERAL STORE / upper north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                4.85,
+                -15.06
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.24,
+                1.5,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "22": {
+            "id": 22,
+            "name": "01 GENERAL STORE / upper west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -24.98,
+                4.85,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.0600000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "23": {
+            "id": 23,
+            "name": "01 GENERAL STORE / upper east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.02,
+                4.85,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.0600000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "24": {
+            "id": 24,
+            "name": "01 GENERAL STORE / upper roof cap",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                6.380000000000001,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.24,
+                0.12,
+                5.279999999999999
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "25": {
+            "id": 25,
+            "name": "Store / counter",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                0.65,
+                -7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                3.2,
+                0.65,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "26": {
+            "id": 26,
+            "name": "Store / stockroom divider",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                1.55,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.14,
+                1.55,
+                2
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "27": {
+            "id": 27,
+            "name": "Store / stair lower flight",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.1,
+                0.55,
+                -8.4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.55,
+                0.55,
+                2.1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "28": {
+            "id": 28,
+            "name": "Store / stair upper landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.1,
+                1.25,
+                -10.1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.55,
+                0.18,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "29": {
+            "id": 29,
+            "name": "Store / rear window ledge",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                2.2,
+                -15.7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.1,
+                0.15,
+                0.35
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "30": {
+            "id": 30,
+            "name": "02 DINER / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                0.05,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "31": {
+            "id": 31,
+            "name": "02 DINER / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                1.6,
+                -15.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "32": {
+            "id": 32,
+            "name": "02 DINER / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14.52,
+                1.6,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "33": {
+            "id": 33,
+            "name": "02 DINER / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                23.48,
+                1.6,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "34": {
+            "id": 34,
+            "name": "02 DINER / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                2.92,
+                -4.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.9600000000000002,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "35": {
+            "id": 35,
+            "name": "02 DINER / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                12,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "36": {
+            "id": 36,
+            "name": "02 DINER / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "37": {
+            "id": 37,
+            "name": "02 DINER / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14.52,
+                3.3200000000000003,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "38": {
+            "id": 38,
+            "name": "02 DINER / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                23.48,
+                3.3200000000000003,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "39": {
+            "id": 39,
+            "name": "02 DINER / interior partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                1.6,
+                -10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.49000000000000005,
+                1.6,
+                4.62
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "40": {
+            "id": 40,
+            "name": "Diner / service counter",
+            "parent": null,
+            "transform": {
+              "translation": [
+                18,
+                0.62,
+                -8.1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                4.5,
+                0.62,
+                0.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "41": {
+            "id": 41,
+            "name": "Diner / kitchen wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                22,
+                1.55,
+                -10.1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.14,
+                1.55,
+                2.4
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "42": {
+            "id": 42,
+            "name": "Diner / booth A",
+            "parent": null,
+            "transform": {
+              "translation": [
+                16,
+                0.45,
+                -12.3
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.7,
+                0.45,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "43": {
+            "id": 43,
+            "name": "Diner / booth B",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                0.45,
+                -12.3
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.7,
+                0.45,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "44": {
+            "id": 44,
+            "name": "Diner / roof access platform",
+            "parent": null,
+            "transform": {
+              "translation": [
+                24,
+                3.6,
+                -8.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.2,
+                0.18,
+                2.2
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "45": {
+            "id": 45,
+            "name": "Diner / fire escape ladder",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25,
+                1.7,
+                -7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.12,
+                1.7,
+                0.12
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "46": {
+            "id": 46,
+            "name": "03 CLINIC / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                0.05,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.5,
+                0.12,
+                6
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "47": {
+            "id": 47,
+            "name": "03 CLINIC / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                1.6,
+                4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.5,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "48": {
+            "id": 48,
+            "name": "03 CLINIC / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -23.16,
+                1.6,
+                16
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "49": {
+            "id": 49,
+            "name": "03 CLINIC / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14.84,
+                1.6,
+                16
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "50": {
+            "id": 50,
+            "name": "03 CLINIC / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                2.92,
+                16
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.8200000000000003,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "51": {
+            "id": 51,
+            "name": "03 CLINIC / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -25.5,
+                1.6,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                6
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "52": {
+            "id": 52,
+            "name": "03 CLINIC / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -12.5,
+                1.6,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                6
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "53": {
+            "id": 53,
+            "name": "03 CLINIC / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -23.16,
+                3.3200000000000003,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                0.12,
+                6
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "54": {
+            "id": 54,
+            "name": "03 CLINIC / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14.84,
+                3.3200000000000003,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.34,
+                0.12,
+                6
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "55": {
+            "id": 55,
+            "name": "03 CLINIC / interior partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                1.6,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.45500000000000007,
+                1.6,
+                5.04
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "56": {
+            "id": 56,
+            "name": "Clinic / reception desk",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                0.65,
+                7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                3.2,
+                0.65,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "57": {
+            "id": 57,
+            "name": "Clinic / treatment partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21.8,
+                1.5,
+                11
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.14,
+                1.5,
+                2.1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "58": {
+            "id": 58,
+            "name": "Clinic / basement hatch",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -15.5,
+                0.12,
+                13.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.2,
+                0.12,
+                1.2
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "59": {
+            "id": 59,
+            "name": "Clinic / basement floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                -2.2,
+                14
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5,
+                0.12,
+                4
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "60": {
+            "id": 60,
+            "name": "Clinic / basement north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -19,
+                -0.55,
+                12
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5,
+                1.65,
+                0.15
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "61": {
+            "id": 61,
+            "name": "Clinic / basement east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14,
+                -0.55,
+                14
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.15,
+                1.65,
+                2
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "62": {
+            "id": 62,
+            "name": "04 FIRE STATION / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                0.05,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7.5,
+                0.12,
+                6.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "63": {
+            "id": 63,
+            "name": "04 FIRE STATION / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                1.6,
+                3.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7.5,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "64": {
+            "id": 64,
+            "name": "04 FIRE STATION / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14.2,
+                1.6,
+                16.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.6999999999999997,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "65": {
+            "id": 65,
+            "name": "04 FIRE STATION / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                23.8,
+                1.6,
+                16.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.6999999999999997,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "66": {
+            "id": 66,
+            "name": "04 FIRE STATION / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                2.92,
+                16.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.1,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "67": {
+            "id": 67,
+            "name": "04 FIRE STATION / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                11.5,
+                1.6,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                6.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "68": {
+            "id": 68,
+            "name": "04 FIRE STATION / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.5,
+                1.6,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                6.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "69": {
+            "id": 69,
+            "name": "04 FIRE STATION / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14.2,
+                3.3200000000000003,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.6999999999999997,
+                0.12,
+                6.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "70": {
+            "id": 70,
+            "name": "04 FIRE STATION / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                23.8,
+                3.3200000000000003,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.6999999999999997,
+                0.12,
+                6.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "71": {
+            "id": 71,
+            "name": "04 FIRE STATION / upper floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                3.3200000000000003,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7.199999999999999,
+                0.12,
+                6.24
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "72": {
+            "id": 72,
+            "name": "04 FIRE STATION / upper north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                4.85,
+                4.02
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7.199999999999999,
+                1.5,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "73": {
+            "id": 73,
+            "name": "04 FIRE STATION / upper west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                12.1,
+                4.85,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.98
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "74": {
+            "id": 74,
+            "name": "04 FIRE STATION / upper east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.9,
+                4.85,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.98
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "75": {
+            "id": 75,
+            "name": "04 FIRE STATION / upper roof cap",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                6.380000000000001,
+                10
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7.199999999999999,
+                0.12,
+                6.24
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "76": {
+            "id": 76,
+            "name": "Fire station / garage lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                19,
+                3.45,
+                16.7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5,
+                0.18,
+                0.18
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "77": {
+            "id": 77,
+            "name": "Fire station / upper balcony",
+            "parent": null,
+            "transform": {
+              "translation": [
+                27,
+                3.6,
+                8.8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.3,
+                0.18,
+                3
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "78": {
+            "id": 78,
+            "name": "Fire station / exterior stair lower",
+            "parent": null,
+            "transform": {
+              "translation": [
+                27,
+                1,
+                11
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.55,
+                1,
+                1.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "79": {
+            "id": 79,
+            "name": "Fire station / exterior stair upper",
+            "parent": null,
+            "transform": {
+              "translation": [
+                27,
+                2.4,
+                8.8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.55,
+                0.65,
+                1.3
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "80": {
+            "id": 80,
+            "name": "05 RESIDENTIAL HOUSE / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                0.05,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6,
+                0.12,
+                5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "81": {
+            "id": 81,
+            "name": "05 RESIDENTIAL HOUSE / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                1.6,
+                23
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "82": {
+            "id": 82,
+            "name": "05 RESIDENTIAL HOUSE / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -24.84,
+                1.6,
+                33
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.16,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "83": {
+            "id": 83,
+            "name": "05 RESIDENTIAL HOUSE / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -17.16,
+                1.6,
+                33
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.16,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "84": {
+            "id": 84,
+            "name": "05 RESIDENTIAL HOUSE / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                2.92,
+                33
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.6800000000000002,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "85": {
+            "id": 85,
+            "name": "05 RESIDENTIAL HOUSE / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -27,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "86": {
+            "id": 86,
+            "name": "05 RESIDENTIAL HOUSE / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -15,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "87": {
+            "id": 87,
+            "name": "05 RESIDENTIAL HOUSE / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -24.84,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.16,
+                0.12,
+                5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "88": {
+            "id": 88,
+            "name": "05 RESIDENTIAL HOUSE / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -17.16,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.16,
+                0.12,
+                5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "89": {
+            "id": 89,
+            "name": "05 RESIDENTIAL HOUSE / interior partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.42000000000000004,
+                1.6,
+                4.2
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "90": {
+            "id": 90,
+            "name": "05 RESIDENTIAL HOUSE / upper floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5.76,
+                0.12,
+                4.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "91": {
+            "id": 91,
+            "name": "05 RESIDENTIAL HOUSE / upper north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                4.85,
+                23.4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5.76,
+                1.5,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "92": {
+            "id": 92,
+            "name": "05 RESIDENTIAL HOUSE / upper west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -26.52,
+                4.85,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                4.6000000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "93": {
+            "id": 93,
+            "name": "05 RESIDENTIAL HOUSE / upper east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -15.48,
+                4.85,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                4.6000000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.6,
+                0.57,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "94": {
+            "id": 94,
+            "name": "05 RESIDENTIAL HOUSE / upper roof cap",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -21,
+                6.380000000000001,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                5.76,
+                0.12,
+                4.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "95": {
+            "id": 95,
+            "name": "House / interior stair step 1",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -17.4,
+                0.25,
+                29
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.45,
+                0.25,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "96": {
+            "id": 96,
+            "name": "House / interior stair step 2",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -17.4,
+                0.65,
+                28.2
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.45,
+                0.25,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "97": {
+            "id": 97,
+            "name": "House / interior stair step 3",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -17.4,
+                1.05,
+                27.4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.45,
+                0.25,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "98": {
+            "id": 98,
+            "name": "House / balcony",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -14.2,
+                3.1,
+                25.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.8,
+                0.15,
+                2.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "99": {
+            "id": 99,
+            "name": "House / roof bridge",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -10.7,
+                3.35,
+                24.7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2,
+                0.15,
+                0.65
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "100": {
+            "id": 100,
+            "name": "06 MOTEL / ground floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                0.05,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "101": {
+            "id": 101,
+            "name": "06 MOTEL / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                1.6,
+                22.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                7,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "102": {
+            "id": 102,
+            "name": "06 MOTEL / south wall left",
+            "parent": null,
+            "transform": {
+              "translation": [
+                16.52,
+                1.6,
+                33.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "103": {
+            "id": 103,
+            "name": "06 MOTEL / south wall right",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.48,
+                1.6,
+                33.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                1.6,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "104": {
+            "id": 104,
+            "name": "06 MOTEL / south wall lintel",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                2.92,
+                33.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.9600000000000002,
+                0.28,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "105": {
+            "id": 105,
+            "name": "06 MOTEL / west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "106": {
+            "id": 106,
+            "name": "06 MOTEL / east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                28,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.6,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "107": {
+            "id": 107,
+            "name": "06 MOTEL / roof west wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                16.52,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "108": {
+            "id": 108,
+            "name": "06 MOTEL / roof east wing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.48,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.52,
+                0.12,
+                5.5
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "109": {
+            "id": 109,
+            "name": "06 MOTEL / interior partition",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                1.6,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.49000000000000005,
+                1.6,
+                4.62
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.68,
+                0.62,
+                0.49,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "110": {
+            "id": 110,
+            "name": "06 MOTEL / upper floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                3.3200000000000003,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.72,
+                0.12,
+                5.279999999999999
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "111": {
+            "id": 111,
+            "name": "06 MOTEL / upper north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                4.85,
+                22.939999999999998
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.72,
+                1.5,
+                0.22
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "112": {
+            "id": 112,
+            "name": "06 MOTEL / upper west wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                14.559999999999999,
+                4.85,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.0600000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "113": {
+            "id": 113,
+            "name": "06 MOTEL / upper east wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                27.44,
+                4.85,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.22,
+                1.5,
+                5.0600000000000005
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.43,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "114": {
+            "id": 114,
+            "name": "06 MOTEL / upper roof cap",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                6.380000000000001,
+                28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6.72,
+                0.12,
+                5.279999999999999
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "115": {
+            "id": 115,
+            "name": "Motel / external gallery",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                3.25,
+                22
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6,
+                0.15,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "116": {
+            "id": 116,
+            "name": "Motel / gallery railing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                21,
+                3.85,
+                21.45
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                6,
+                0.08,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "117": {
+            "id": 117,
+            "name": "Motel / roof ladder",
+            "parent": null,
+            "transform": {
+              "translation": [
+                27.8,
+                2,
+                26
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.12,
+                2,
+                0.12
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "118": {
+            "id": 118,
+            "name": "WEST ALLEY / ground",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -10,
+                -0.18,
+                17
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.4,
+                0.15,
+                15
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.2,
+                0.22,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "119": {
+            "id": 119,
+            "name": "EAST ALLEY / ground",
+            "parent": null,
+            "transform": {
+              "translation": [
+                10,
+                -0.18,
+                17
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.4,
+                0.15,
+                15
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.2,
+                0.22,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "120": {
+            "id": 120,
+            "name": "Rooftop connector / west landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -9.5,
+                3.55,
+                22.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2,
+                0.15,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "121": {
+            "id": 121,
+            "name": "Rooftop connector / east landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                10.2,
+                3.55,
+                22.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2,
+                0.15,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.28,
+                0.31,
+                0.31,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "122": {
+            "id": 122,
+            "name": "Rooftop connector / gap crossing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                3.65,
+                22.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                8.5,
+                0.12,
+                0.55
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "123": {
+            "id": 123,
+            "name": "CULVERT / tunnel floor",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -2.7,
+                -1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                16,
+                0.12,
+                1.7
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "124": {
+            "id": 124,
+            "name": "CULVERT / tunnel ceiling",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -0.8,
+                -1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                16,
+                0.12,
+                1.7
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "125": {
+            "id": 125,
+            "name": "CULVERT / north wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -1.75,
+                -2.7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                16,
+                0.95,
+                0.12
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "126": {
+            "id": 126,
+            "name": "CULVERT / south wall",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                -1.75,
+                0.7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                16,
+                0.95,
+                0.12
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "127": {
+            "id": 127,
+            "name": "CULVERT / entrance west",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -15,
+                -1.7,
+                -1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.18,
+                1,
+                1.7
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "128": {
+            "id": 128,
+            "name": "CULVERT / entrance east",
+            "parent": null,
+            "transform": {
+              "translation": [
+                15,
+                -1.7,
+                -1
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.18,
+                1,
+                1.7
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "129": {
+            "id": 129,
+            "name": "Cover / overturned pickup",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -3,
+                0.65,
+                8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.2,
+                0.65,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "130": {
+            "id": 130,
+            "name": "Cover / concrete planter",
+            "parent": null,
+            "transform": {
+              "translation": [
+                3,
+                0.45,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.5,
+                0.45,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "131": {
+            "id": 131,
+            "name": "Cover / bus stop",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -7,
+                1.2,
+                -2
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1.8,
+                1.2,
+                0.25
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.24,
+                0.36,
+                0.38,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "132": {
+            "id": 132,
+            "name": "Cover / delivery van",
+            "parent": null,
+            "transform": {
+              "translation": [
+                8,
+                0.8,
+                3
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.4,
+                0.8,
+                1.1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "133": {
+            "id": 133,
+            "name": "Landmark / water tower legs",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -30,
+                5,
+                29
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.35,
+                5,
+                0.35
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.7,
+                0.48,
+                0.22,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "134": {
+            "id": 134,
+            "name": "Landmark / water tank",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -30,
+                11,
+                29
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                2.4,
+                1.8,
+                2.4
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.22,
+                0.35,
+                0.43,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "135": {
+            "id": 135,
+            "name": "Boundary / west tree line",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -36,
+                2,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                2,
+                34
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "136": {
+            "id": 136,
+            "name": "Boundary / east tree line",
+            "parent": null,
+            "transform": {
+              "translation": [
+                36,
+                2,
+                0
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                2,
+                34
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "137": {
+            "id": 137,
+            "name": "Boundary / north ridge",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                3,
+                -37
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                37,
+                3,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "138": {
+            "id": 138,
+            "name": "Boundary / south roadblock",
+            "parent": null,
+            "transform": {
+              "translation": [
+                0,
+                1,
+                37
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                37,
+                1,
+                1
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.25,
+                0.3,
+                0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          }
+        }
+      }
+    }
+  ],
+  "textures": [],
+  "materials": []
+}
