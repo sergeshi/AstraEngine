@@ -4,7 +4,7 @@
   "project_id": "graypine-start-001",
   "project_name": "Graypine — стартовый квартал",
   "created_unix_secs": 1793720218,
-  "modified_unix_secs": 1793720241,
+  "modified_unix_secs": 1793720251,
   "active_scene_id": "scene-graypine-01",
   "scenes": [
     {
@@ -21,7 +21,7 @@
               "translation": [
                 0,
                 0,
-                0
+                30
               ],
               "rotation": [
                 0,
