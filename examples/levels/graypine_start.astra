@@ -4,14 +4,14 @@
   "project_id": "graypine-start-001",
   "project_name": "Graypine — стартовый квартал",
   "created_unix_secs": 1793720218,
-  "modified_unix_secs": 1793720218,
+  "modified_unix_secs": 1793720241,
   "active_scene_id": "scene-graypine-01",
   "scenes": [
     {
       "id": "scene-graypine-01",
       "name": "Graypine / Starting Quarter",
       "scene": {
-        "next_id": 138,
+        "next_id": 174,
         "entities": {
           "1": {
             "id": 1,
@@ -816,7 +816,7 @@
             "parent": null,
             "transform": {
               "translation": [
-                -19,
+                -20,
                 3.3200000000000003,
                 -10
               ],
@@ -826,7 +826,7 @@
                 0
               ],
               "scale": [
-                6.24,
+                5.24,
                 0.12,
                 5.279999999999999
               ]
@@ -3060,7 +3060,7 @@
             "parent": null,
             "transform": {
               "translation": [
-                19,
+                18,
                 3.3200000000000003,
                 10
               ],
@@ -3070,7 +3070,7 @@
                 0
               ],
               "scale": [
-                7.199999999999999,
+                6.199999999999999,
                 0.12,
                 6.24
               ]
@@ -3896,7 +3896,7 @@
             "parent": null,
             "transform": {
               "translation": [
-                -21,
+                -22,
                 3.3200000000000003,
                 28
               ],
@@ -3906,7 +3906,7 @@
                 0
               ],
               "scale": [
-                5.76,
+                4.76,
                 0.12,
                 4.8
               ]
@@ -4776,7 +4776,7 @@
             "parent": null,
             "transform": {
               "translation": [
-                21,
+                20,
                 3.3200000000000003,
                 28
               ],
@@ -4786,7 +4786,7 @@
                 0
               ],
               "scale": [
-                6.72,
+                5.72,
                 0.12,
                 5.279999999999999
               ]
@@ -6037,6 +6037,1590 @@
                 0.25,
                 0.3,
                 0.25,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "139": {
+            "id": 139,
+            "name": "01 GENERAL STORE / stair step 1",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                0.22,
+                -5.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "140": {
+            "id": 140,
+            "name": "01 GENERAL STORE / stair step 2",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                0.62,
+                -6
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "141": {
+            "id": 141,
+            "name": "01 GENERAL STORE / stair step 3",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                1.02,
+                -6.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "142": {
+            "id": 142,
+            "name": "01 GENERAL STORE / stair step 4",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                1.4200000000000002,
+                -7
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "143": {
+            "id": 143,
+            "name": "01 GENERAL STORE / stair step 5",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                1.82,
+                -7.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "144": {
+            "id": 144,
+            "name": "01 GENERAL STORE / stair step 6",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                2.22,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "145": {
+            "id": 145,
+            "name": "01 GENERAL STORE / stair step 7",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                2.6200000000000006,
+                -8.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "146": {
+            "id": 146,
+            "name": "01 GENERAL STORE / stair step 8",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                3.0200000000000005,
+                -9
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "147": {
+            "id": 147,
+            "name": "01 GENERAL STORE / upper stair landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -13.85,
+                3.25,
+                -9.6
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.8,
+                0.12,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "148": {
+            "id": 148,
+            "name": "04 FIRE STATION / stair step 1",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                0.22,
+                15.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "149": {
+            "id": 149,
+            "name": "04 FIRE STATION / stair step 2",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                0.62,
+                15
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "150": {
+            "id": 150,
+            "name": "04 FIRE STATION / stair step 3",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                1.02,
+                14.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "151": {
+            "id": 151,
+            "name": "04 FIRE STATION / stair step 4",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                1.4200000000000002,
+                14
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "152": {
+            "id": 152,
+            "name": "04 FIRE STATION / stair step 5",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                1.82,
+                13.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "153": {
+            "id": 153,
+            "name": "04 FIRE STATION / stair step 6",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                2.22,
+                13
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "154": {
+            "id": 154,
+            "name": "04 FIRE STATION / stair step 7",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                2.6200000000000006,
+                12.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "155": {
+            "id": 155,
+            "name": "04 FIRE STATION / stair step 8",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                3.0200000000000005,
+                12
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "156": {
+            "id": 156,
+            "name": "04 FIRE STATION / upper stair landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                25.15,
+                3.25,
+                11.4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.8,
+                0.12,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "157": {
+            "id": 157,
+            "name": "05 RESIDENTIAL HOUSE / stair step 1",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                0.22,
+                32
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "158": {
+            "id": 158,
+            "name": "05 RESIDENTIAL HOUSE / stair step 2",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                0.62,
+                31.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "159": {
+            "id": 159,
+            "name": "05 RESIDENTIAL HOUSE / stair step 3",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                1.02,
+                31
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "160": {
+            "id": 160,
+            "name": "05 RESIDENTIAL HOUSE / stair step 4",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                1.4200000000000002,
+                30.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "161": {
+            "id": 161,
+            "name": "05 RESIDENTIAL HOUSE / stair step 5",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                1.82,
+                30
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "162": {
+            "id": 162,
+            "name": "05 RESIDENTIAL HOUSE / stair step 6",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                2.22,
+                29.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "163": {
+            "id": 163,
+            "name": "05 RESIDENTIAL HOUSE / stair step 7",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                2.6200000000000006,
+                29
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "164": {
+            "id": 164,
+            "name": "05 RESIDENTIAL HOUSE / stair step 8",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                3.0200000000000005,
+                28.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "165": {
+            "id": 165,
+            "name": "05 RESIDENTIAL HOUSE / upper stair landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                -16.35,
+                3.25,
+                27.9
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.8,
+                0.12,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "166": {
+            "id": 166,
+            "name": "06 MOTEL / stair step 1",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                0.22,
+                32.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "167": {
+            "id": 167,
+            "name": "06 MOTEL / stair step 2",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                0.62,
+                32
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "168": {
+            "id": 168,
+            "name": "06 MOTEL / stair step 3",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                1.02,
+                31.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "169": {
+            "id": 169,
+            "name": "06 MOTEL / stair step 4",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                1.4200000000000002,
+                31
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "170": {
+            "id": 170,
+            "name": "06 MOTEL / stair step 5",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                1.82,
+                30.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "171": {
+            "id": 171,
+            "name": "06 MOTEL / stair step 6",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                2.22,
+                30
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "172": {
+            "id": 172,
+            "name": "06 MOTEL / stair step 7",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                2.6200000000000006,
+                29.5
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "173": {
+            "id": 173,
+            "name": "06 MOTEL / stair step 8",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                3.0200000000000005,
+                29
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.62,
+                0.18,
+                0.32
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.34,
+                0.25,
+                0.18,
+                1
+              ],
+              "metallic": 0,
+              "roughness": 0.85,
+              "base_color_texture": null,
+              "metallic_roughness_texture": null
+            },
+            "material_asset_id": null
+          },
+          "174": {
+            "id": 174,
+            "name": "06 MOTEL / upper stair landing",
+            "parent": null,
+            "transform": {
+              "translation": [
+                26.65,
+                3.25,
+                28.4
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                0.8,
+                0.12,
+                0.8
+              ]
+            },
+            "pivot": [
+              0,
+              0,
+              0
+            ],
+            "mesh": "Cube",
+            "mesh_component": {
+              "Primitive": "Cube"
+            },
+            "material": {
+              "base_color": [
+                0.52,
+                0.53,
+                0.5,
                 1
               ],
               "metallic": 0,
